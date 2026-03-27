@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}TechEscrow P2P | Secure Electronics Marketplace{% endblock %}
+
+{% block content %}
+<!-- Main Shell Layout -->
+<div class="flex">
+    <!-- SideNavBar -->
+    <aside class="h-screen w-64 fixed left-0 top-0 pt-24 bg-[#0b1326] flex flex-col gap-2 z-40 overflow-y-auto">
+        <div class="px-6 mb-6">
+            <h3 class="text-[#dae2fd] font-headline font-bold text-lg leading-tight">Categories</h3>
+            <p class="text-on-surface-variant text-xs font-medium">Filter by Hardware</p>
+        </div>
+        <nav class="flex flex-col gap-1">
+            <!-- All Products Link -->
+            <a class="{% if not request.GET.category %}bg-[#171f33] text-[#4edea3] rounded-r-full translate-x-1{% else %}text-[#dae2fd]/70 hover:text-[#dae2fd] hover:bg-[#171f33]/50{% endif %} py-3 px-6 flex items-center gap-3 transition-all group" href="{% url 'marketplace:product_list' %}">
+                <span class="material-symbols-outlined">grid_view</span>
+                <span class="font-body text-sm font-medium">All Products</span>
+            </a>
+            {% for cat in categories %}
+            <a class="{% if request.GET.category == cat.slug %}bg-[#171f33] text-[#4edea3] rounded-r-full translate-x-1{% else %}text-[#dae2fd]/70 hover:text-[#dae2fd] hover:bg-[#171f33]/50{% endif %} py-3 px-6 flex items-center gap-3 transition-all group" href="?category={{ cat.slug }}">
+                <span class="material-symbols-outlined">{% if cat.slug == 'laptops' %}laptop_mac{% elif cat.slug == 'pc-parts' %}memory{% elif cat.slug == 'phones' %}smartphone{% elif cat.slug == 'audio' %}headphones{% elif cat.slug == 'peripherals' %}keyboard{% elif cat.slug == 'monitors' %}monitor{% elif cat.slug == 'networking' %}router{% elif cat.slug == 'storage' %}storage{% elif cat.slug == 'cameras' %}photo_camera{% else %}category{% endif %}</span>
+                <span class="font-body text-sm font-medium">{{ cat.name }}</span>
+            </a>
+            {% endfor %}
+        </nav>
+
+        <!-- Condition Filter -->
+        <div class="mt-8 px-6 space-y-6">
+            <div>
+                <div class="flex items-center gap-2 text-on-surface-variant mb-4">
+                    <span class="material-symbols-outlined text-sm">gavel</span>
+                    <span class="text-xs uppercase tracking-widest font-bold">Condition</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <a href="?condition=new{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="flex items-center gap-3 cursor-pointer group">
+                        <div class="w-4 h-4 rounded-sm {% if request.GET.condition == 'new' %}bg-primary border border-primary{% else %}bg-surface-container-highest group-hover:bg-surface-container-high border border-outline-variant/30{% endif %} flex items-center justify-center">
+                            {% if request.GET.condition == 'new' %}
+                            <span class="material-symbols-outlined text-[10px] text-on-primary font-bold">check</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs {% if request.GET.condition == 'new' %}text-on-surface{% else %}text-on-surface-variant{% endif %}">New / Open Box</span>
+                    </a>
+                    <a href="?condition=used{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="flex items-center gap-3 cursor-pointer group">
+                        <div class="w-4 h-4 rounded-sm {% if request.GET.condition == 'used' %}bg-primary border border-primary{% else %}bg-surface-container-highest group-hover:bg-surface-container-high border border-outline-variant/30{% endif %} flex items-center justify-center">
+                            {% if request.GET.condition == 'used' %}
+                            <span class="material-symbols-outlined text-[10px] text-on-primary font-bold">check</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs {% if request.GET.condition == 'used' %}text-on-surface{% else %}text-on-surface-variant{% endif %}">Used / Like New</span>
+                    </a>
+                    <a href="?condition=refurbished{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="flex items-center gap-3 cursor-pointer group">
+                        <div class="w-4 h-4 rounded-sm {% if request.GET.condition == 'refurbished' %}bg-primary border border-primary{% else %}bg-surface-container-highest group-hover:bg-surface-container-high border border-outline-variant/30{% endif %} flex items-center justify-center">
+                            {% if request.GET.condition == 'refurbished' %}
+                            <span class="material-symbols-outlined text-[10px] text-on-primary font-bold">check</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs {% if request.GET.condition == 'refurbished' %}text-on-surface{% else %}text-on-surface-variant{% endif %}">Repaired / Refurbished</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-auto p-6">
+            <a href="{% url 'marketplace:product_list' %}" class="block w-full bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-3 px-4 rounded-xl transition-all text-sm text-center">
+                Clear Filters
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Canvas -->
+    <main class="flex-1 ml-64 p-8 min-h-screen">
+        <!-- Hero / Featured Section -->
+        <header class="mb-12 relative overflow-hidden rounded-[2rem] bg-surface-container-low p-12 min-h-[320px] flex flex-col justify-center">
+            <div class="absolute top-0 right-0 w-2/3 h-full opacity-20 pointer-events-none">
+                <img alt="PC Setup" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMPQB5fMyXX1zOZjUqfi9xUtAI-R3KXAuJeYFanqyiJ8Dzzo8cRpYLgiwPpgVIPr5KsbJ-6UGSYHPux4vjDS8_LRIWODbaEqAhfqSQWnOSDLogqXDCq9-SAXUw4inrMlPQCB0f07TImStKFVNN5i18CVGzsGfSx1lrt8MIm8bqBeoJORVvTMF_YmCZszS4AQehTl9XmZ_ttwcaHIVxeh4-Y5DW5NtBbnSM9NowgpJlj1Xot_fmgp1WHR9gEWDAsv2BNJXNur-tQA59"/>
+            </div>
+            <div class="relative z-10 max-w-xl">
+                <div class="inline-flex items-center gap-2 bg-primary-container px-3 py-1 rounded-full text-primary text-[10px] font-bold uppercase tracking-widest mb-6">
+                    <span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                    Live Nodes Connected
+                </div>
+                <h1 class="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-4 leading-[1.1]">
+                    Trade Hardware with <span class="text-primary">Immutable Trust.</span>
+                </h1>
+                <p class="text-on-surface-variant text-lg font-body leading-relaxed mb-8">
+                    The world's first P2P marketplace for high-end electronics secured by smart contract escrow.
+                </p>
+                <div class="flex gap-4">
+                    <a href="#product-grid" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-headline font-extrabold hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                        Browse Collection
+                    </a>
+                    <button class="bg-surface-container-highest text-on-surface px-8 py-3.5 rounded-xl font-headline font-bold">
+                        View Whitepaper
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Product Grid -->
+        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {% for product in products %}
+            <div class="group bg-surface-container-low rounded-[1.5rem] overflow-hidden transition-all duration-300 hover:bg-surface-container hover:shadow-2xl hover:shadow-black/40">
+                <div class="relative aspect-[4/3] overflow-hidden">
+                    {% if product.get_image_url %}
+                    <img alt="{{ product.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="{{ product.get_image_url }}"/>
+                    {% else %}
+                    <div class="w-full h-full bg-surface-container-highest flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
+                        <span class="material-symbols-outlined text-6xl text-outline/30">inventory_2</span>
+                    </div>
+                    {% endif %}
+                    <div class="absolute top-4 left-4">
+                        <span class="bg-surface-container-lowest/80 backdrop-blur-md text-primary text-[10px] font-bold px-3 py-1.5 rounded-lg border border-primary/20 uppercase">
+                            {{ product.condition }}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-headline font-bold text-xl text-on-surface leading-tight">{{ product.name }}</h3>
+                        <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors cursor-pointer">favorite</span>
+                    </div>
+                    <div class="flex items-center gap-2 mb-6 text-on-tertiary-container">
+                        <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Escrow Protected</span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-outline text-xs mb-1 font-medium">Price</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-2xl font-headline font-black text-on-surface vnd-price" data-vnd="{{ product.price }}">{{ product.price|floatformat:0 }} ₫</span>
+                            </div>
+                            <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ product.price }}"></span>
+                        </div>
+                        <a href="{% url 'marketplace:product_detail' product.id %}" class="bg-surface-container-highest text-on-surface hover:bg-primary hover:text-on-primary p-3 rounded-xl transition-all">
+                            <span class="material-symbols-outlined block">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center mb-6">
+                    <span class="material-symbols-outlined text-4xl text-outline/40">search_off</span>
+                </div>
+                <h3 class="font-headline font-bold text-xl text-on-surface mb-2">No Products Found</h3>
+                <p class="text-on-surface-variant text-sm max-w-sm">There are no products matching your current filters. Try adjusting your search or browse all categories.</p>
+                <a href="{% url 'marketplace:product_list' %}" class="mt-6 bg-primary text-on-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                    View All Products
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Bento Status Section -->
+        <section class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2 bg-tertiary-container rounded-[2rem] p-8 flex flex-col justify-between overflow-hidden relative">
+                <div class="relative z-10">
+                    <h4 class="font-headline text-2xl font-bold text-on-surface mb-2">The Ledger Protocol</h4>
+                    <p class="text-on-tertiary-container max-w-md text-sm leading-relaxed">Your funds are locked in a decentralized escrow until you confirm delivery. Our smart contracts have secured over $2.4M in P2P electronics trade.</p>
+                </div>
+                <div class="mt-8 flex items-center gap-6 relative z-10">
+                    <div class="flex -space-x-3">
+                        <div class="w-10 h-10 rounded-full border-2 border-tertiary-container bg-surface-bright"></div>
+                        <div class="w-10 h-10 rounded-full border-2 border-tertiary-container bg-primary-fixed"></div>
+                        <div class="w-10 h-10 rounded-full border-2 border-tertiary-container bg-surface-container-highest"></div>
+                    </div>
+                    <span class="text-xs font-bold text-on-tertiary-container uppercase tracking-widest">Joined by 12,400+ Traders</span>
+                </div>
+                <!-- Abstract Background Pattern -->
+                <div class="absolute top-0 right-0 w-64 h-64 opacity-10">
+                    <svg class="w-full h-full fill-primary" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M44.7,-76.4C58.1,-69.2,69.2,-58.1,76.4,-44.7C83.7,-31.4,87.1,-15.7,85.6,-0.9C84,13.9,77.5,27.8,69.2,40.1C60.9,52.4,50.7,63.2,38.3,70.9C25.9,78.6,12.9,83.1,-0.6,84.1C-14.1,85.1,-28.1,82.5,-41,75.7C-53.8,68.9,-65.4,57.8,-73.4,44.5C-81.4,31.2,-85.8,15.6,-85.1,0.4C-84.4,-14.8,-78.6,-29.6,-69.3,-41.8C-60.1,-54.1,-47.4,-63.8,-33.8,-70.8C-20.2,-77.8,-5.8,-82.1,9.4,-82.1C24.7,-82.1,31.2,-83.5,44.7,-76.4Z" transform="translate(100 100)"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded-[2rem] p-8 flex flex-col items-center text-center justify-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">security</span>
+                </div>
+                <h4 class="font-headline font-bold text-on-surface">Kinetic Protection</h4>
+                <p class="text-outline text-xs">24/7 Dispute resolution handled by decentralized validators.</p>
+                <button class="text-primary text-[10px] font-bold uppercase tracking-widest hover:underline mt-2">Learn More</button>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin — Yêu cầu trả hàng — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .refund-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .refund-card:hover {
+        border-color: rgba(255, 213, 79, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .filter-chip.active {
+        background: rgba(255, 213, 79, 0.12);
+        color: #ffd54f;
+        border-color: rgba(255, 213, 79, 0.3);
+    }
+    .filter-chip:not(.active) {
+        background: rgba(45, 52, 73, 0.6);
+        color: #c6c6cd;
+    }
+    .filter-chip:not(.active):hover {
+        background: rgba(45, 52, 73, 0.9);
+    }
+
+    .badge-pending {
+        background: rgba(255, 213, 79, 0.1);
+        color: #ffd54f;
+        border: 1px solid rgba(255, 213, 79, 0.2);
+    }
+    .badge-approved {
+        background: rgba(78, 222, 163, 0.1);
+        color: #4edea3;
+        border: 1px solid rgba(78, 222, 163, 0.2);
+    }
+    .badge-rejected {
+        background: rgba(255, 180, 171, 0.1);
+        color: #ffb4ab;
+        border: 1px solid rgba(255, 180, 171, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Page Header ═══════════════════════ -->
+    <div class="flex items-center justify-between mb-10">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">shield_person</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Quản lý yêu cầu trả hàng</h1>
+                <p class="text-sm text-on-surface-variant font-body">Duyệt và xử lý các yêu cầu hoàn tiền từ người mua</p>
+            </div>
+        </div>
+        <a href="{% url 'transactions:admin_dashboard' %}" class="hidden sm:flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            Dashboard
+        </a>
+    </div>
+
+    <!-- ═══════════════════════ Stats ═══════════════════════ -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div class="glass-panel rounded-2xl p-4 text-center" style="background: rgba(45, 52, 73, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(78, 222, 163, 0.08);">
+            <div class="text-2xl font-headline font-extrabold text-[#dae2fd]">{{ counts.all }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Tổng cộng</div>
+        </div>
+        <div class="glass-panel rounded-2xl p-4 text-center" style="background: rgba(45, 52, 73, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 213, 79, 0.12);">
+            <div class="text-2xl font-headline font-extrabold" style="color: #ffd54f;">{{ counts.pending }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Chờ duyệt</div>
+        </div>
+        <div class="glass-panel rounded-2xl p-4 text-center" style="background: rgba(45, 52, 73, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(78, 222, 163, 0.12);">
+            <div class="text-2xl font-headline font-extrabold text-primary">{{ counts.approved }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Đã duyệt</div>
+        </div>
+        <div class="glass-panel rounded-2xl p-4 text-center" style="background: rgba(45, 52, 73, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 180, 171, 0.12);">
+            <div class="text-2xl font-headline font-extrabold text-error">{{ counts.rejected }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Từ chối</div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ Filters ═══════════════════════ -->
+    <div class="flex items-center gap-3 mb-8">
+        <a href="?status=all" class="filter-chip font-headline {% if status_filter == 'all' %}active{% endif %}">Tất cả ({{ counts.all }})</a>
+        <a href="?status=Pending" class="filter-chip font-headline {% if status_filter == 'Pending' %}active{% endif %}">Chờ duyệt ({{ counts.pending }})</a>
+        <a href="?status=Approved" class="filter-chip font-headline {% if status_filter == 'Approved' %}active{% endif %}">Đã duyệt ({{ counts.approved }})</a>
+        <a href="?status=Rejected" class="filter-chip font-headline {% if status_filter == 'Rejected' %}active{% endif %}">Từ chối ({{ counts.rejected }})</a>
+    </div>
+
+    <!-- ═══════════════════════ Refund List ═══════════════════════ -->
+    <div class="space-y-4">
+        {% for refund in refunds %}
+        <a href="{% url 'transactions:admin_refund_detail' refund.id %}" class="refund-card p-5 block">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-5">
+
+                <!-- Product Image -->
+                <div class="w-16 h-16 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                    {% if refund.transaction.product.get_image_url %}
+                    <img src="{{ refund.transaction.product.get_image_url }}" alt="{{ refund.transaction.product.name }}" class="w-full h-full object-cover"/>
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0 space-y-1">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h3 class="text-sm font-headline font-bold text-[#dae2fd] truncate">{{ refund.transaction.product.name }}</h3>
+                        {% if refund.status == 'Pending' %}
+                        <span class="badge-pending text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">schedule</span>
+                            Chờ duyệt
+                        </span>
+                        {% elif refund.status == 'Approved' %}
+                        <span class="badge-approved text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">check_circle</span>
+                            Đã duyệt
+                        </span>
+                        {% elif refund.status == 'Rejected' %}
+                        <span class="badge-rejected text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">cancel</span>
+                            Từ chối
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body flex-wrap">
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">tag</span>
+                            Refund #{{ refund.id }} — Order #{{ refund.transaction.id }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">person</span>
+                            Buyer: {{ refund.transaction.buyer.username }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">calendar_today</span>
+                            {{ refund.created_at|date:"d/m/Y H:i" }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Reason & Amount -->
+                <div class="flex items-center gap-6 flex-shrink-0">
+                    <div class="text-right">
+                        <div class="text-xs text-on-surface-variant font-label">Lý do</div>
+                        <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ refund.get_reason_display }}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-on-surface-variant font-label">Số tiền</div>
+                        <div class="text-base font-headline font-extrabold text-primary vnd-price" data-vnd="{{ refund.transaction.amount }}">{{ refund.transaction.amount|floatformat:0 }} ₫</div>
+                        <div class="text-[10px] text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ refund.transaction.amount }}"></div>
+                    </div>
+                    <span class="material-symbols-outlined text-outline/30">chevron_right</span>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-4xl text-outline/40">inbox</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-on-surface mb-2">Không có yêu cầu nào</h3>
+            <p class="text-on-surface-variant text-sm max-w-sm">Chưa có yêu cầu trả hàng/hoàn tiền nào{% if status_filter != 'all' %} ở trạng thái này{% endif %}.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

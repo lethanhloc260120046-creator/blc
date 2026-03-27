@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sửa sản phẩm — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-card {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.12);
+    }
+    .form-input {
+        background: rgba(6, 14, 32, 0.8);
+        border: 1px solid rgba(69, 70, 77, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        color: #dae2fd;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: rgba(78, 222, 163, 0.4);
+        box-shadow: 0 0 0 3px rgba(78, 222, 163, 0.08);
+    }
+    .form-input::placeholder {
+        color: rgba(144, 144, 151, 0.5);
+    }
+    .form-select {
+        background: rgba(6, 14, 32, 0.8);
+        border: 1px solid rgba(69, 70, 77, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        color: #dae2fd;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23909097' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+    }
+    .form-select:focus {
+        outline: none;
+        border-color: rgba(78, 222, 163, 0.4);
+        box-shadow: 0 0 0 3px rgba(78, 222, 163, 0.08);
+    }
+    .form-textarea {
+        background: rgba(6, 14, 32, 0.8);
+        border: 1px solid rgba(69, 70, 77, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        color: #dae2fd;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+        resize: vertical;
+        min-height: 120px;
+    }
+    .form-textarea:focus {
+        outline: none;
+        border-color: rgba(78, 222, 163, 0.4);
+        box-shadow: 0 0 0 3px rgba(78, 222, 163, 0.08);
+    }
+    .form-textarea::placeholder {
+        color: rgba(144, 144, 151, 0.5);
+    }
+    .btn-submit {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-submit:hover {
+        box-shadow: 0 0 28px rgba(78, 222, 163, 0.35);
+        transform: scale(1.02);
+    }
+    .btn-submit:active {
+        transform: scale(0.97);
+    }
+    .upload-zone {
+        background: rgba(6, 14, 32, 0.5);
+        border: 2px dashed rgba(69, 70, 77, 0.5);
+        border-radius: 1rem;
+        transition: border-color 0.25s, background 0.25s;
+        cursor: pointer;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: rgba(78, 222, 163, 0.4);
+        background: rgba(78, 222, 163, 0.03);
+    }
+    .condition-radio {
+        display: none;
+    }
+    .condition-label {
+        background: rgba(6, 14, 32, 0.6);
+        border: 1px solid rgba(69, 70, 77, 0.4);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    .condition-radio:checked + .condition-label {
+        border-color: #4edea3;
+        background: rgba(78, 222, 163, 0.08);
+        color: #4edea3;
+    }
+    .condition-label:hover {
+        border-color: rgba(78, 222, 163, 0.25);
+    }
+    .current-image {
+        border: 1px solid rgba(78, 222, 163, 0.15);
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs font-body text-outline mb-8">
+        <a href="{% url 'marketplace:product_list' %}" class="hover:text-primary transition-colors">Home</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        <a href="{% url 'marketplace:product_detail' product.id %}" class="hover:text-primary transition-colors">{{ product.name|truncatechars:30 }}</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        <span class="text-on-surface/70">Sửa sản phẩm</span>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="flex items-center gap-4 mb-10">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined text-[#003824] text-2xl" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+        </div>
+        <div>
+            <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Sửa sản phẩm</h1>
+            <p class="text-sm text-on-surface-variant font-body">Cập nhật thông tin sản phẩm của bạn</p>
+        </div>
+    </div>
+
+    {% if product.status == 'PENDING_APPROVAL' %}
+    <div class="flex items-center gap-3 p-4 rounded-xl mb-6" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
+        <span class="material-symbols-outlined text-[#ffd54f]">hourglass_top</span>
+        <span class="text-sm font-headline font-bold text-[#ffd54f]">Sản phẩm đang chờ Admin duyệt</span>
+    </div>
+    {% elif product.status == 'HIDDEN' %}
+    <div class="flex items-center gap-3 p-4 rounded-xl mb-6" style="background: rgba(255, 180, 171, 0.08); border: 1px solid rgba(255, 180, 171, 0.15);">
+        <span class="material-symbols-outlined text-error">visibility_off</span>
+        <span class="text-sm font-headline font-bold text-error">Sản phẩm đã bị ẩn</span>
+    </div>
+    {% endif %}
+
+    <!-- Form Card -->
+    <form method="POST" enctype="multipart/form-data" class="form-card rounded-2xl p-8 space-y-8">
+        {% csrf_token %}
+
+        <!-- Product Name -->
+        <div class="space-y-2">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Product Name *</label>
+            <input type="text" name="name" required value="{{ product.name }}" class="form-input" />
+        </div>
+
+        <!-- Category + Price Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs uppercase tracking-widest text-outline font-label block">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">Select a category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if product.category and product.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs uppercase tracking-widest text-outline font-label block">Giá bán (VND) *</label>
+                <input type="number" name="price" required step="1000" min="0" value="{{ product.price|floatformat:0 }}" class="form-input" />
+            </div>
+        </div>
+
+        <!-- Condition -->
+        <div class="space-y-3">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Condition *</label>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <input type="radio" name="condition" value="New / Open Box" id="cond-new" class="condition-radio" required {% if product.condition == "New / Open Box" %}checked{% endif %} />
+                    <label for="cond-new" class="condition-label block">
+                        <span class="material-symbols-outlined text-lg block mb-1">fiber_new</span>
+                        <span class="text-xs font-headline font-bold">New / Open Box</span>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="condition" value="Used 99%" id="cond-used" class="condition-radio" {% if product.condition == "Used 99%" %}checked{% endif %} />
+                    <label for="cond-used" class="condition-label block">
+                        <span class="material-symbols-outlined text-lg block mb-1">thumb_up</span>
+                        <span class="text-xs font-headline font-bold">Used 99%</span>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="condition" value="Refurbished" id="cond-refurb" class="condition-radio" {% if product.condition == "Refurbished" %}checked{% endif %} />
+                    <label for="cond-refurb" class="condition-label block">
+                        <span class="material-symbols-outlined text-lg block mb-1">build</span>
+                        <span class="text-xs font-headline font-bold">Refurbished</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div class="space-y-2">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Description</label>
+            <textarea name="description" placeholder="Describe the hardware condition, specs, accessories included…" class="form-textarea">{{ product.description }}</textarea>
+        </div>
+
+        <!-- Current Image -->
+        {% if product.get_image_url %}
+        <div class="space-y-2">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Ảnh hiện tại</label>
+            <div class="current-image inline-block">
+                <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="max-h-48 rounded-xl" />
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Image Upload -->
+        <div class="space-y-2">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Thay đổi ảnh (tùy chọn)</label>
+            <div class="upload-zone p-8 flex flex-col items-center gap-3" id="upload-zone" onclick="document.getElementById('image-input').click()">
+                <div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-2xl" id="upload-icon">cloud_upload</span>
+                </div>
+                <p class="text-sm text-on-surface-variant font-body" id="upload-text">Click to upload or drag & drop</p>
+                <p class="text-[10px] text-outline">PNG, JPG, WEBP up to 10MB</p>
+                <img id="image-preview" class="hidden max-h-48 rounded-xl mt-2" alt="Preview" />
+            </div>
+            <input type="file" name="image" id="image-input" accept="image/*" class="hidden" onchange="previewImage(this)" />
+        </div>
+
+        <!-- OR Image URL -->
+        <div class="space-y-2">
+            <label class="text-xs uppercase tracking-widest text-outline font-label block">Or paste Image URL</label>
+            <input type="url" name="image_url" placeholder="https://example.com/product-photo.jpg" value="{{ product.image_url|default:'' }}" class="form-input" />
+        </div>
+
+        <!-- Divider -->
+        <div class="border-t border-outline-variant/15"></div>
+
+        <!-- Submit -->
+        <div class="flex items-center gap-4">
+            <button type="submit" class="btn-submit flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl text-[#003824] font-headline font-extrabold tracking-tight text-sm">
+                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">save</span>
+                Lưu thay đổi
+            </button>
+            <a href="{% url 'marketplace:product_detail' product.id %}" class="flex items-center justify-center gap-2 py-4 px-6 rounded-xl border border-outline-variant/25 text-on-surface-variant font-headline font-bold text-sm bg-transparent hover:bg-surface-container-highest transition-colors no-underline">
+                Hủy
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function previewImage(input) {
+        var preview = document.getElementById('image-preview');
+        var uploadText = document.getElementById('upload-text');
+        var uploadIcon = document.getElementById('upload-icon');
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+                uploadText.textContent = input.files[0].name;
+                uploadIcon.textContent = 'check_circle';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    var zone = document.getElementById('upload-zone');
+    zone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+    });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        var input = document.getElementById('image-input');
+        input.files = e.dataTransfer.files;
+        previewImage(input);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .thumbnail-ring { outline: 2px solid transparent; outline-offset: 2px; transition: outline-color 0.2s; }
+    .thumbnail-ring.active, .thumbnail-ring:hover { outline-color: #4edea3; }
+    .bento-box {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .bento-box:hover {
+        border-color: rgba(78, 222, 163, 0.25);
+        transform: translateY(-2px);
+    }
+    .checkout-card {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.12);
+    }
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-gradient-primary:hover {
+        box-shadow: 0 0 28px rgba(78, 222, 163, 0.35);
+        transform: scale(1.02);
+    }
+    .btn-gradient-primary:active {
+        transform: scale(0.97);
+    }
+    .image-showcase {
+        background: rgba(6, 14, 32, 0.6);
+        border: 1px solid rgba(78, 222, 163, 0.06);
+    }
+    .pulse-dot {
+        animation: pulse-green 2s ease-in-out infinite;
+    }
+    @keyframes pulse-green {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.5); }
+        50% { box-shadow: 0 0 0 6px rgba(78, 222, 163, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if product.status == 'PENDING_APPROVAL' %}
+<div class="w-full py-3 px-6 text-center text-sm font-headline font-bold bg-[#ffd54f]/10 text-[#ffd54f] border-b border-[#ffd54f]/20">
+    <span class="material-symbols-outlined text-sm align-middle mr-1">hourglass_top</span>
+    Sản phẩm đang chờ Admin duyệt — chưa hiển thị trên marketplace
+</div>
+{% elif product.status == 'HIDDEN' %}
+<div class="w-full py-3 px-6 text-center text-sm font-headline font-bold bg-red-500/10 text-red-400 border-b border-red-500/20">
+    <span class="material-symbols-outlined text-sm align-middle mr-1">visibility_off</span>
+    Sản phẩm đã bị ẩn khỏi marketplace
+</div>
+{% endif %}
+{% if can_edit %}
+<div class="fixed bottom-6 right-6 z-40">
+    <a href="{% url 'marketplace:edit_product' product.id %}" class="flex items-center gap-2 bg-primary text-on-primary font-headline font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all no-underline text-sm">
+        <span class="material-symbols-outlined text-lg">edit</span>
+        Sửa sản phẩm
+    </a>
+</div>
+{% endif %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+
+    <!-- ═══════════════════════ Breadcrumb ═══════════════════════ -->
+    <nav class="flex items-center gap-2 text-xs font-body text-outline mb-8">
+        <a href="{% url 'marketplace:product_list' %}" class="hover:text-primary transition-colors">Home</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        {% if product.category %}
+        <a href="{% url 'marketplace:product_list' %}?category={{ product.category.slug }}" class="hover:text-primary transition-colors">{{ product.category.name }}</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        {% endif %}
+        <span class="text-on-surface/70 truncate max-w-[220px]">{{ product.name }}</span>
+    </nav>
+
+    <!-- ═══════════════════════ Main Grid ═══════════════════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+        <!-- ─────────── LEFT: Image Showcase (col-span-7) ─────────── -->
+        <div class="lg:col-span-7 space-y-4">
+            <!-- Primary Image -->
+            <div class="image-showcase rounded-2xl overflow-hidden flex items-center justify-center aspect-[4/3]" id="main-image-container">
+                {% if product.get_image_url %}
+                <img id="main-product-image"
+                     src="{{ product.get_image_url }}"
+                     alt="{{ product.name }}"
+                     class="w-full h-full object-cover rounded-2xl" />
+                {% else %}
+                <div class="flex flex-col items-center justify-center gap-3 text-outline/40 w-full h-full">
+                    <span class="material-symbols-outlined text-6xl">image</span>
+                    <span class="text-xs font-body tracking-wide">No image available</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Thumbnail strip -->
+            <div class="flex gap-3 overflow-x-auto pb-1">
+                {% if product.get_image_url %}
+                <button class="thumbnail-ring active rounded-xl overflow-hidden flex-shrink-0 w-20 h-20 border border-outline-variant/20" onclick="selectThumb(this, '{{ product.get_image_url }}')">
+                    <img src="{{ product.get_image_url }}" alt="Thumb 1" class="w-full h-full object-cover"/>
+                </button>
+                {% else %}
+                <div class="rounded-xl bg-surface-container-low flex items-center justify-center w-20 h-20 border border-outline-variant/20">
+                    <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ─────────── RIGHT: Info + Checkout (col-span-5) ─────────── -->
+        <div class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- Status badge + Category -->
+            <div class="flex items-center gap-3">
+                {% if product.status == 'AVAILABLE' %}
+                <span class="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold font-headline tracking-wide px-3 py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+                    Available
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 bg-error/10 text-error text-[11px] font-bold font-headline tracking-wide px-3 py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                    {{ product.status }}
+                </span>
+                {% endif %}
+                {% if product.category %}
+                <span class="text-[11px] text-on-surface-variant bg-surface-container px-3 py-1 rounded-full font-label">{{ product.category.name }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Product Title -->
+            <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] leading-tight tracking-tight">
+                {{ product.name }}
+            </h1>
+
+            <!-- ── Spec Bento Grid (2×2) ── -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Box 1: Price -->
+                <div class="bento-box flex flex-col gap-1">
+                    <span class="text-[10px] uppercase tracking-widest text-outline font-label">Price</span>
+                    <span class="text-xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ product.price }}">{{ product.price|floatformat:0 }} ₫</span>
+                    <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ product.price }}"></span>
+                </div>
+                <!-- Box 2: Condition -->
+                <div class="bento-box flex flex-col gap-1">
+                    <span class="text-[10px] uppercase tracking-widest text-outline font-label">Condition</span>
+                    <span class="text-base font-headline font-bold text-[#dae2fd]">{{ product.condition|default:"N/A" }}</span>
+                </div>
+                <!-- Box 3: Category -->
+                <div class="bento-box flex flex-col gap-1">
+                    <span class="text-[10px] uppercase tracking-widest text-outline font-label">Category</span>
+                    <span class="text-base font-headline font-bold text-[#dae2fd]">{{ product.category.name|default:"Uncategorized" }}</span>
+                </div>
+                <!-- Box 4: Listed -->
+                <div class="bento-box flex flex-col gap-1">
+                    <span class="text-[10px] uppercase tracking-widest text-outline font-label">Listed</span>
+                    <span class="text-base font-headline font-bold text-[#dae2fd]">{{ product.created_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+
+            <!-- ── Seller Assessment / Description ── -->
+            <div class="space-y-2">
+                <h3 class="text-xs uppercase tracking-widest text-outline font-label">Seller's Assessment</h3>
+                <p class="text-sm text-on-surface/80 font-body leading-relaxed">
+                    {% if product.description %}
+                        {{ product.description|linebreaksbr }}
+                    {% else %}
+                        <span class="italic text-outline/50">No description provided by the seller.</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- ═══════════════ Glass-Panel Checkout Card ═══════════════ -->
+            <div class="checkout-card rounded-2xl p-6 space-y-5 mt-auto">
+                <div class="flex items-center justify-between">
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] uppercase tracking-widest text-outline font-label block">Total Price</span>
+                        <span class="text-2xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ product.price }}">{{ product.price|floatformat:0 }} ₫</span>
+                        <span class="text-xs text-on-surface-variant font-body vnd-to-eth block" data-vnd-price="{{ product.price }}"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-primary/5 px-3 py-1.5 rounded-full">
+                        <span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        <span class="text-[10px] text-primary font-headline font-bold tracking-wide">Escrow Protected</span>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-outline-variant/15"></div>
+
+                <!-- Buy via Smart Contract Escrow -->
+                <a href="{% url 'transactions:checkout' product.id %}"
+                   class="btn-gradient-primary w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-[#003824] font-headline font-extrabold tracking-tight text-sm no-underline">
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                    Buy via Smart Contract Escrow
+                </a>
+
+                <!-- Add to Cart -->
+                <form method="POST" action="{% url 'marketplace:add_to_cart' product.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-primary/25 text-primary font-headline font-bold tracking-tight text-sm bg-transparent hover:bg-primary/5 transition-colors">
+                        <span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+                        Add to Cart
+                    </button>
+                </form>
+
+                <!-- Micro trust badges -->
+                <div class="flex items-center justify-center gap-6 pt-1">
+                    <span class="flex items-center gap-1 text-[10px] text-outline/60 font-label">
+                        <span class="material-symbols-outlined text-[13px]">lock</span>
+                        Encrypted
+                    </span>
+                    <span class="flex items-center gap-1 text-[10px] text-outline/60 font-label">
+                        <span class="material-symbols-outlined text-[13px]">shield</span>
+                        Buyer Protection
+                    </span>
+                    <span class="flex items-center gap-1 text-[10px] text-outline/60 font-label">
+                        <span class="material-symbols-outlined text-[13px]">timer</span>
+                        30-day
+                    </span>
+                </div>
+            </div>
+
+            <!-- ═══════════════ Seller Info Card ═══════════════ -->
+            <div class="bento-box flex items-center gap-4">
+                <div class="w-11 h-11 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-[#003824] text-lg" style="font-variation-settings: 'FILL' 1;">person</span>
+                </div>
+                <div class="flex flex-col gap-0.5 min-w-0">
+                    <span class="text-[10px] uppercase tracking-widest text-outline font-label">Seller</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd] truncate">{{ product.seller.username }}</span>
+                    {% if seller_wallet %}
+                    <span class="text-[11px] text-on-surface-variant font-mono truncate" id="seller-wallet-display"
+                          title="{{ seller_wallet }}">
+                        {{ seller_wallet }}
+                    </span>
+                    {% else %}
+                    <span class="text-[11px] text-outline/40 italic">Wallet not linked</span>
+                    {% endif %}
+                </div>
+                <div class="ml-auto flex-shrink-0">
+                    <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ Technical Specifications ═══════════════════════ -->
+    <section class="mt-16 mb-12">
+        <div class="flex items-center gap-3 mb-6">
+            <span class="material-symbols-outlined text-primary text-xl">settings_suggest</span>
+            <h2 class="text-xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Technical Specifications</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-outline-variant/10 rounded-2xl overflow-hidden border border-outline-variant/10">
+            <!-- Spec Row: Name -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">label</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Product Name</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.name }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Condition -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">build</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Condition</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.condition|default:"Not specified" }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Category -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">category</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Category</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.category.name|default:"Uncategorized" }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Status -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">info</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Listing Status</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.status }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Price -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">payments</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Listed Price</div>
+                    <div class="text-sm text-primary font-headline font-bold mt-0.5 vnd-price" data-vnd="{{ product.price }}">{{ product.price|floatformat:0 }} ₫</div>
+                    <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ product.price }}"></div>
+                </div>
+            </div>
+            <!-- Spec Row: Listed Date -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">calendar_today</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Date Listed</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.created_at|date:"F j, Y, g:i A" }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Seller -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">storefront</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Sold By</div>
+                    <div class="text-sm text-[#dae2fd] font-body mt-0.5">{{ product.seller.username }}</div>
+                </div>
+            </div>
+            <!-- Spec Row: Escrow -->
+            <div class="bg-surface-container-low px-6 py-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary/60 text-sm">security</span>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label">Payment Method</div>
+                    <div class="text-sm text-primary font-body mt-0.5">Smart Contract Escrow</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Truncate seller wallet: first 6 ... last 4 ──
+    (function() {
+        const el = document.getElementById('seller-wallet-display');
+        if (el) {
+            const full = el.textContent.trim();
+            if (full.length > 10) {
+                el.textContent = full.slice(0, 6) + '…' + full.slice(-4);
+            }
+        }
+    })();
+
+    // ── Thumbnail selector ──
+    function selectThumb(btn, src) {
+        // Remove active from all thumbnails
+        document.querySelectorAll('.thumbnail-ring').forEach(function(t) {
+            t.classList.remove('active');
+        });
+        btn.classList.add('active');
+
+        // Swap main image
+        const mainImg = document.getElementById('main-product-image');
+        if (mainImg) {
+            mainImg.src = src;
+        }
+    }
+</script>
+{% endblock %}

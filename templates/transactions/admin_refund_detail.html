@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Refund #{{ refund.id }} — Admin — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .detail-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(69, 70, 77, 0.15);
+    }
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .evidence-img {
+        border-radius: 0.75rem;
+        border: 1px solid rgba(78, 222, 163, 0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .evidence-img:hover {
+        transform: scale(1.02);
+    }
+
+    .btn-approve {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-approve:hover {
+        box-shadow: 0 0 20px rgba(78, 222, 163, 0.3);
+        transform: scale(1.02);
+    }
+    .btn-approve:active { transform: scale(0.97); }
+
+    .btn-reject {
+        background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-reject:hover {
+        box-shadow: 0 0 20px rgba(255, 82, 82, 0.3);
+        transform: scale(1.02);
+    }
+    .btn-reject:active { transform: scale(0.97); }
+
+    .badge-pending {
+        background: rgba(255, 213, 79, 0.1);
+        color: #ffd54f;
+        border: 1px solid rgba(255, 213, 79, 0.2);
+    }
+    .badge-approved {
+        background: rgba(78, 222, 163, 0.1);
+        color: #4edea3;
+        border: 1px solid rgba(78, 222, 163, 0.2);
+    }
+    .badge-rejected {
+        background: rgba(255, 180, 171, 0.1);
+        color: #ffb4ab;
+        border: 1px solid rgba(255, 180, 171, 0.2);
+    }
+
+    .reason-highlight {
+        background: rgba(255, 213, 79, 0.06);
+        border: 1px solid rgba(255, 213, 79, 0.15);
+        border-radius: 0.75rem;
+    }
+
+    /* Lightbox */
+    .lightbox-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .lightbox-overlay img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Back + Header ═══════════════════════ -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'transactions:admin_dashboard' %}" class="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary font-headline font-bold transition-colors">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            Dashboard
+        </a>
+        <span class="text-on-surface-variant/30">/</span>
+        <a href="{% url 'transactions:admin_refund_list' %}" class="inline-flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary font-headline font-bold transition-colors">
+            Danh sách yêu cầu
+        </a>
+    </div>
+
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">gavel</span>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Yêu cầu trả hàng #{{ refund.id }}</h1>
+                <p class="text-sm text-on-surface-variant font-body">Order #{{ tx.id }} — {{ refund.created_at|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+        {% if refund.status == 'Pending' %}
+        <span class="badge-pending text-xs font-bold font-headline tracking-wide px-4 py-1.5 rounded-full inline-flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">schedule</span>
+            Chờ duyệt
+        </span>
+        {% elif refund.status == 'Approved' %}
+        <span class="badge-approved text-xs font-bold font-headline tracking-wide px-4 py-1.5 rounded-full inline-flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">check_circle</span>
+            Đã duyệt — Hoàn tiền Buyer
+        </span>
+        {% elif refund.status == 'Rejected' %}
+        <span class="badge-rejected text-xs font-bold font-headline tracking-wide px-4 py-1.5 rounded-full inline-flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">cancel</span>
+            Từ chối — Tiền chuyển Seller
+        </span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- ═══════════════════════ Left Column ═══════════════════════ -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Reason -->
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base" style="color: #ffd54f;">report_problem</span>
+                    Lý do trả hàng
+                </h2>
+                <div class="reason-highlight p-4 mb-3">
+                    <div class="text-base font-headline font-bold" style="color: #ffd54f;">{{ refund.get_reason_display }}</div>
+                    {% if refund.reason_detail %}
+                    <p class="text-sm text-on-surface-variant font-body mt-2 leading-relaxed">{{ refund.reason_detail }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Evidence Images -->
+            {% if evidence_urls %}
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-primary">photo_library</span>
+                    Hình ảnh chứng minh ({{ evidence_urls|length }})
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for url in evidence_urls %}
+                    <img src="{{ url }}" alt="Evidence {{ forloop.counter }}" class="evidence-img w-full h-48 object-cover" onclick="openLightbox('{{ url }}')">
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Admin Note (if already resolved) -->
+            {% if refund.admin_note and refund.status != 'Pending' %}
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-tertiary">notes</span>
+                    Ghi chú Admin
+                </h2>
+                <p class="text-sm text-on-surface-variant font-body leading-relaxed">{{ refund.admin_note }}</p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- ═══════════════════════ Right Column ═══════════════════════ -->
+        <div class="space-y-6">
+
+            <!-- Transaction Info -->
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-primary">receipt_long</span>
+                    Thông tin giao dịch
+                </h2>
+
+                <!-- Product -->
+                <div class="flex items-center gap-3 mb-4 pb-4 border-b border-outline-variant/15">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                        {% if tx.product.get_image_url %}
+                        <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-outline/30">image</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ tx.product.name }}</div>
+                        <div class="text-lg font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                        <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-0">
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Buyer</span>
+                        <span class="text-xs font-mono text-[#dae2fd]/80" title="{{ buyer_wallet }}">{{ buyer_wallet|truncatechars:14 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Seller</span>
+                        <span class="text-xs font-mono text-[#dae2fd]/80" title="{{ seller_wallet }}">{{ seller_wallet|truncatechars:14 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Trạng thái GD</span>
+                        <span class="text-xs font-headline font-bold" style="color: #ffd54f;">{{ tx.status }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Ngày tạo GD</span>
+                        <span class="text-xs text-[#dae2fd]/80 font-body">{{ tx.created_at|date:"d/m/Y" }}</span>
+                    </div>
+                    {% if tx.smart_contract_tx_hash %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">TX Hash</span>
+                        <span class="text-xs font-mono text-primary/70" title="{{ tx.smart_contract_tx_hash }}">{{ tx.smart_contract_tx_hash|truncatechars:16 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Admin Actions -->
+            {% if refund.status == 'Pending' %}
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base" style="color: #ffd54f;">shield_person</span>
+                    Hành động Admin
+                </h2>
+
+                <div class="mb-4">
+                    <label class="text-xs uppercase tracking-widest text-outline font-label">Ghi chú (tùy chọn)</label>
+                    <textarea id="admin-note" rows="3"
+                        class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface font-body focus:ring-1 focus:ring-primary/30 focus:border-primary/30 resize-none"
+                        placeholder="Ghi chú lý do duyệt/từ chối..."></textarea>
+                </div>
+
+                <div class="space-y-3">
+                    <button onclick="handleResolve(true)" class="btn-approve w-full py-3 rounded-xl text-[#003824] font-headline font-bold text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-base">check_circle</span>
+                        Duyệt — Hoàn tiền Buyer
+                    </button>
+                    <button onclick="handleResolve(false)" class="btn-reject w-full py-3 rounded-xl text-white font-headline font-bold text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-base">cancel</span>
+                        Từ chối — Chuyển tiền Seller
+                    </button>
+                </div>
+
+                <p class="text-[10px] text-on-surface-variant/60 font-body mt-3 text-center leading-relaxed">
+                    Hành động sẽ gọi Smart Contract <code>resolveDispute()</code>.<br>
+                    Đảm bảo ví MetaMask đang kết nối là Admin wallet.
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox-overlay hidden" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="Evidence">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var REFUND_ID = {{ refund.id }};
+    var TX_ID = {{ tx.id }};
+
+    function handleResolve(favorBuyer) {
+        var adminNote = document.getElementById('admin-note').value;
+        adminResolveDispute(REFUND_ID, TX_ID, favorBuyer, adminNote);
+    }
+
+    function openLightbox(url) {
+        document.getElementById('lightbox-img').src = url;
+        document.getElementById('lightbox').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.add('hidden');
+    }
+</script>
+{% endblock %}

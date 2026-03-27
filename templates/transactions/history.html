@@ -1,0 +1,823 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Transaction Dashboard — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tx-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .tx-card:hover {
+        border-color: rgba(78, 222, 163, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .stat-card {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+    }
+
+    .glass-section {
+        background: rgba(45, 52, 73, 0.35);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(78, 222, 163, 0.06);
+    }
+
+    /* ── Escrow Stepper ── */
+    .stepper-step {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        min-width: 72px;
+    }
+    .stepper-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        transition: all 0.3s;
+    }
+    .stepper-dot.active {
+        background: rgba(78, 222, 163, 0.15);
+        border: 2px solid #4edea3;
+        color: #4edea3;
+    }
+    .stepper-dot.completed {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        border: 2px solid #4edea3;
+        color: #003824;
+    }
+    .stepper-dot.pending {
+        background: rgba(69, 70, 77, 0.3);
+        border: 2px solid rgba(69, 70, 77, 0.5);
+        color: rgba(144, 144, 151, 0.6);
+    }
+    .stepper-connector {
+        flex: 1;
+        height: 2px;
+        min-width: 24px;
+        margin-top: 14px;
+        border-radius: 1px;
+    }
+    .stepper-connector.completed {
+        background: linear-gradient(90deg, #4edea3, #009365);
+    }
+    .stepper-connector.pending {
+        background: rgba(69, 70, 77, 0.4);
+    }
+
+    /* ── Action Buttons ── */
+    .btn-confirm {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-confirm:hover {
+        box-shadow: 0 0 20px rgba(78, 222, 163, 0.3);
+        transform: scale(1.02);
+    }
+    .btn-confirm:active { transform: scale(0.97); }
+
+    .btn-cancel {
+        background: rgba(255, 180, 171, 0.08);
+        border: 1px solid rgba(255, 180, 171, 0.25);
+        transition: all 0.2s;
+    }
+    .btn-cancel:hover {
+        background: rgba(255, 180, 171, 0.15);
+        border-color: rgba(255, 180, 171, 0.4);
+    }
+
+    .btn-pay {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-pay:hover {
+        box-shadow: 0 0 20px rgba(78, 222, 163, 0.3);
+        transform: scale(1.02);
+    }
+    .btn-pay:active { transform: scale(0.97); }
+
+    /* ── Status badges ── */
+    .badge-created {
+        background: rgba(185, 199, 224, 0.1);
+        color: #b9c7e0;
+        border: 1px solid rgba(185, 199, 224, 0.2);
+    }
+    .badge-funded {
+        background: rgba(78, 222, 163, 0.1);
+        color: #4edea3;
+        border: 1px solid rgba(78, 222, 163, 0.2);
+    }
+    .badge-completed {
+        background: rgba(0, 147, 101, 0.15);
+        color: #6ffbbe;
+        border: 1px solid rgba(111, 251, 190, 0.2);
+    }
+    .badge-cancelled {
+        background: rgba(255, 180, 171, 0.1);
+        color: #ffb4ab;
+        border: 1px solid rgba(255, 180, 171, 0.2);
+    }
+    .badge-disputed {
+        background: rgba(255, 213, 79, 0.1);
+        color: #ffd54f;
+        border: 1px solid rgba(255, 213, 79, 0.2);
+    }
+
+    .btn-refund {
+        background: rgba(255, 213, 79, 0.08);
+        border: 1px solid rgba(255, 213, 79, 0.25);
+        transition: all 0.2s;
+    }
+    .btn-refund:hover {
+        background: rgba(255, 213, 79, 0.15);
+        border-color: rgba(255, 213, 79, 0.4);
+    }
+
+    /* ── Refund Modal ── */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-content {
+        background: #131b2e;
+        border: 1px solid rgba(78, 222, 163, 0.12);
+        border-radius: 1.25rem;
+        max-width: 560px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .reason-option {
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .reason-option:hover {
+        background: rgba(78, 222, 163, 0.04);
+    }
+    .reason-option input:checked + .reason-label {
+        border-color: #ffd54f;
+        background: rgba(255, 213, 79, 0.06);
+    }
+    .upload-zone {
+        border: 2px dashed rgba(78, 222, 163, 0.15);
+        border-radius: 0.75rem;
+        transition: all 0.2s;
+    }
+    .upload-zone:hover {
+        border-color: rgba(78, 222, 163, 0.35);
+    }
+
+    .pulse-dot {
+        animation: pulse-green 2s ease-in-out infinite;
+    }
+    @keyframes pulse-green {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.5); }
+        50% { box-shadow: 0 0 0 6px rgba(78, 222, 163, 0); }
+    }
+
+    .section-tab {
+        transition: all 0.2s;
+    }
+    .section-tab.active {
+        color: #4edea3;
+        border-bottom: 2px solid #4edea3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Page Header ═══════════════════════ -->
+    <div class="flex items-center justify-between mb-10">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-[#003824] text-2xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Transaction Dashboard</h1>
+                <p class="text-sm text-on-surface-variant font-body">Track and manage all your escrow transactions</p>
+            </div>
+        </div>
+        <a href="{% url 'marketplace:product_list' %}" class="hidden sm:flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+            <span class="material-symbols-outlined text-base">storefront</span>
+            Browse Marketplace
+        </a>
+    </div>
+
+    <!-- ═══════════════════════ Stats Overview ═══════════════════════ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <!-- Total Escrow Volume -->
+        <div class="stat-card rounded-2xl p-5 space-y-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-lg">account_balance</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Total Escrow Volume</span>
+            </div>
+            <div class="text-2xl font-headline font-extrabold text-primary" id="stat-total-volume">
+                {% widthratio 0 1 1 as zero %}
+                {% with total=0 %}
+                <span data-stat="volume">
+                    0 ₫
+                </span>
+                {% endwith %}
+            </div>
+            <span class="text-xs text-on-surface-variant font-body vnd-to-eth" id="stat-volume-eth" data-vnd-price="0"></span>
+        </div>
+
+        <!-- Active Disputes -->
+        <div class="stat-card rounded-2xl p-5 space-y-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-error text-lg">gavel</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Active Disputes</span>
+            </div>
+            <div class="text-2xl font-headline font-extrabold text-[#dae2fd]" id="stat-disputes">
+                <span data-stat="disputes">0</span>
+            </div>
+        </div>
+
+        <!-- Purchases -->
+        <div class="stat-card rounded-2xl p-5 space-y-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-tertiary text-lg">shopping_bag</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Purchases</span>
+            </div>
+            <div class="text-2xl font-headline font-extrabold text-[#dae2fd]">
+                {{ as_buyer|length }}
+            </div>
+        </div>
+
+        <!-- Sales -->
+        <div class="stat-card rounded-2xl p-5 space-y-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary text-lg">sell</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Sales</span>
+            </div>
+            <div class="text-2xl font-headline font-extrabold text-[#dae2fd]">
+                {{ as_seller|length }}
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ Section Tabs ═══════════════════════ -->
+    <div class="flex items-center gap-8 border-b border-outline-variant/15 mb-8">
+        <button onclick="switchTab('buyer')" id="tab-buyer" class="section-tab active pb-3 text-sm font-headline font-bold tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">shopping_bag</span>
+            As Buyer
+            <span class="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded-full font-label">{{ as_buyer|length }}</span>
+        </button>
+        <button onclick="switchTab('seller')" id="tab-seller" class="section-tab pb-3 text-sm font-headline font-bold tracking-tight text-on-surface-variant flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">sell</span>
+            As Seller
+            <span class="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded-full font-label">{{ as_seller|length }}</span>
+        </button>
+    </div>
+
+    <!-- ═══════════════════════ As Buyer Section ═══════════════════════ -->
+    <div id="section-buyer" class="space-y-4">
+        {% for tx in as_buyer %}
+        <div class="tx-card p-5"
+             data-transaction-id="{{ tx.id }}"
+             data-status="{{ tx.status }}"
+             data-amount="{{ tx.amount }}"
+             data-product-id="{{ tx.product.id }}"
+             data-seller-wallet="{{ tx.seller.userprofile.wallet_address|default:'' }}"
+             data-tx-hash="{{ tx.smart_contract_tx_hash|default:'' }}">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-5">
+
+                <!-- Product Image -->
+                <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                    {% if tx.product.get_image_url %}
+                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0 space-y-1.5">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h3 class="text-base font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</h3>
+                        <!-- Status Badge -->
+                        {% if tx.status == 'Created' %}
+                        <span class="badge-created text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Created</span>
+                        {% elif tx.status == 'Funded' %}
+                        <span class="badge-funded text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+                            Funded
+                        </span>
+                        {% elif tx.status == 'Disputed' %}
+                        <span class="badge-disputed text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">gavel</span>
+                            Disputed
+                        </span>
+                        {% elif tx.status == 'Completed' %}
+                        <span class="badge-completed text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Completed</span>
+                        {% elif tx.status == 'Cancelled' %}
+                        <span class="badge-cancelled text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Cancelled</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">tag</span>
+                            Order #{{ tx.id }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">storefront</span>
+                            Seller: <span class="font-mono text-[#dae2fd]/60 wallet-truncate" title="{{ tx.seller.userprofile.wallet_address|default:tx.seller.username }}">{{ tx.seller.userprofile.wallet_address|default:tx.seller.username }}</span>
+                        </span>
+                    </div>
+                    <div class="text-lg font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                    <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></span>
+                </div>
+
+                <!-- Escrow Stepper -->
+                <div class="flex items-start gap-0 flex-shrink-0">
+                    <!-- Created -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% else %}
+                            1
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">Created</span>
+                    </div>
+                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <!-- Funded -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Disputed' %}active{% elif tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% elif tx.status == 'Disputed' %}
+                            <span class="material-symbols-outlined text-xs" style="color: #ffd54f;">gavel</span>
+                            {% else %}
+                            2
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Disputed' %}Disputed{% else %}Funded{% endif %}</span>
+                    </div>
+                    <div class="stepper-connector {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <!-- Completed -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% else %}
+                            3
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">Completed</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    {% if tx.status == 'Created' %}
+                    <button onclick="payTransaction({{ tx.id }})" class="btn-pay px-4 py-2.5 rounded-xl text-[#003824] font-headline font-bold text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+                        Pay (Fund Contract)
+                    </button>
+                    {% elif tx.status == 'Funded' %}
+                    <button onclick="openRefundModal({{ tx.id }})" class="btn-refund px-3 py-2.5 rounded-xl text-[#ffd54f] font-headline font-bold text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">undo</span>
+                        Yêu cầu trả hàng
+                    </button>
+                    <button onclick="confirmTransaction({{ tx.id }})" class="btn-confirm px-4 py-2.5 rounded-xl text-[#003824] font-headline font-bold text-xs flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">check_circle</span>
+                        Confirm Received
+                    </button>
+                    {% elif tx.status == 'Disputed' %}
+                    <span class="text-xs font-body flex items-center gap-1.5" style="color: #ffd54f;">
+                        <span class="material-symbols-outlined text-sm pulse-dot" style="color: #ffd54f;">hourglass_top</span>
+                        Đang chờ Admin duyệt
+                    </span>
+                    {% elif tx.status == 'Completed' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        Finalized
+                    </span>
+                    {% elif tx.status == 'Cancelled' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-error">block</span>
+                        Refunded
+                    </span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% empty %}
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-4xl text-outline/40">shopping_bag</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-on-surface mb-2">No Purchases Yet</h3>
+            <p class="text-on-surface-variant text-sm max-w-sm">You haven't made any purchases yet. Browse the marketplace to find great deals on premium hardware.</p>
+            <a href="{% url 'marketplace:product_list' %}" class="mt-6 bg-primary text-on-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                Browse Marketplace
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ═══════════════════════ As Seller Section ═══════════════════════ -->
+    <div id="section-seller" class="space-y-4 hidden">
+        {% for tx in as_seller %}
+        <div class="tx-card p-5"
+             data-transaction-id="{{ tx.id }}"
+             data-status="{{ tx.status }}"
+             data-amount="{{ tx.amount }}"
+             data-product-id="{{ tx.product.id }}"
+             data-buyer-wallet="{{ tx.buyer.userprofile.wallet_address|default:'' }}"
+             data-tx-hash="{{ tx.smart_contract_tx_hash|default:'' }}">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-5">
+
+                <!-- Product Image -->
+                <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                    {% if tx.product.get_image_url %}
+                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0 space-y-1.5">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h3 class="text-base font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</h3>
+                        <!-- Status Badge -->
+                        {% if tx.status == 'Created' %}
+                        <span class="badge-created text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Created</span>
+                        {% elif tx.status == 'Funded' %}
+                        <span class="badge-funded text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+                            Funded
+                        </span>
+                        {% elif tx.status == 'Disputed' %}
+                        <span class="badge-disputed text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">gavel</span>
+                            Disputed
+                        </span>
+                        {% elif tx.status == 'Completed' %}
+                        <span class="badge-completed text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Completed</span>
+                        {% elif tx.status == 'Cancelled' %}
+                        <span class="badge-cancelled text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Cancelled</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">tag</span>
+                            Order #{{ tx.id }}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[13px]">person</span>
+                            Buyer: <span class="font-mono text-[#dae2fd]/60 wallet-truncate" title="{{ tx.buyer.userprofile.wallet_address|default:tx.buyer.username }}">{{ tx.buyer.userprofile.wallet_address|default:tx.buyer.username }}</span>
+                        </span>
+                    </div>
+                    <div class="text-lg font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                    <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></span>
+                </div>
+
+                <!-- Escrow Stepper -->
+                <div class="flex items-start gap-0 flex-shrink-0">
+                    <!-- Created -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% else %}
+                            1
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">Created</span>
+                    </div>
+                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <!-- Funded -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Disputed' %}active{% elif tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% elif tx.status == 'Disputed' %}
+                            <span class="material-symbols-outlined text-xs" style="color: #ffd54f;">gavel</span>
+                            {% else %}
+                            2
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Disputed' %}Disputed{% else %}Funded{% endif %}</span>
+                    </div>
+                    <div class="stepper-connector {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <!-- Completed -->
+                    <div class="stepper-step">
+                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Completed' %}
+                            <span class="material-symbols-outlined text-xs">check</span>
+                            {% else %}
+                            3
+                            {% endif %}
+                        </div>
+                        <span class="text-[9px] font-label text-on-surface-variant">Completed</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons / Status -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    {% if tx.status == 'Funded' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-primary pulse-dot">hourglass_top</span>
+                        Awaiting buyer confirmation
+                    </span>
+                    {% elif tx.status == 'Created' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-tertiary">schedule</span>
+                        Awaiting payment
+                    </span>
+                    {% elif tx.status == 'Disputed' %}
+                    <span class="text-xs font-body flex items-center gap-1.5" style="color: #ffd54f;">
+                        <span class="material-symbols-outlined text-sm" style="color: #ffd54f;">gavel</span>
+                        Buyer yêu cầu trả hàng
+                    </span>
+                    {% elif tx.status == 'Completed' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        Funds Released
+                    </span>
+                    {% elif tx.status == 'Cancelled' %}
+                    <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm text-error">block</span>
+                        Cancelled
+                    </span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% empty %}
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-4xl text-outline/40">sell</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-on-surface mb-2">No Sales Yet</h3>
+            <p class="text-on-surface-variant text-sm max-w-sm">You haven't sold any items yet. List your premium hardware on the marketplace to start earning.</p>
+            <a href="{% url 'marketplace:sell_item' %}" class="mt-6 bg-primary text-on-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                Sell an Item
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+<!-- ═══════════════════════ Refund Request Modal ═══════════════════════ -->
+<div id="refund-modal" class="modal-overlay hidden">
+    <div class="modal-content p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255, 213, 79, 0.1);">
+                    <span class="material-symbols-outlined text-xl" style="color: #ffd54f;">undo</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-headline font-bold text-[#dae2fd]">Yêu cầu trả hàng</h3>
+                    <p class="text-xs text-on-surface-variant font-body">Order #<span id="refund-modal-tx-id"></span></p>
+                </div>
+            </div>
+            <button onclick="closeRefundModal()" class="p-2 hover:bg-surface-container-highest rounded-lg transition-colors">
+                <span class="material-symbols-outlined text-on-surface-variant">close</span>
+            </button>
+        </div>
+
+        <form id="refund-form" onsubmit="event.preventDefault(); submitRefundRequest(this);">
+            <input type="hidden" name="transaction_id" id="refund-tx-id" value="">
+
+            <!-- Reason Selection -->
+            <div class="space-y-2 mb-5">
+                <label class="text-xs uppercase tracking-widest text-outline font-label">Lý do trả hàng *</label>
+
+                <label class="reason-option block">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/15">
+                        <input type="radio" name="reason" value="damaged" class="text-primary focus:ring-primary" required>
+                        <span class="reason-label text-sm text-[#dae2fd] font-body">🔨 Hàng bị hư/hỏng</span>
+                    </div>
+                </label>
+
+                <label class="reason-option block">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/15">
+                        <input type="radio" name="reason" value="not_as_described" class="text-primary focus:ring-primary">
+                        <span class="reason-label text-sm text-[#dae2fd] font-body">📝 Hàng không đúng mô tả</span>
+                    </div>
+                </label>
+
+                <label class="reason-option block">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/15">
+                        <input type="radio" name="reason" value="wrong_item" class="text-primary focus:ring-primary">
+                        <span class="reason-label text-sm text-[#dae2fd] font-body">📦 Giao sai sản phẩm</span>
+                    </div>
+                </label>
+
+                <label class="reason-option block">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/15">
+                        <input type="radio" name="reason" value="not_working" class="text-primary focus:ring-primary">
+                        <span class="reason-label text-sm text-[#dae2fd] font-body">⚡ Hàng không hoạt động</span>
+                    </div>
+                </label>
+
+                <label class="reason-option block">
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/15">
+                        <input type="radio" name="reason" value="other" class="text-primary focus:ring-primary" onchange="toggleOtherReason()">
+                        <span class="reason-label text-sm text-[#dae2fd] font-body">✏️ Lý do khác</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Other reason detail -->
+            <div id="other-reason-box" class="mb-5 hidden">
+                <label class="text-xs uppercase tracking-widest text-outline font-label">Chi tiết lý do *</label>
+                <textarea name="reason_detail" id="reason-detail-input" rows="3"
+                    class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface font-body focus:ring-1 focus:ring-primary/30 focus:border-primary/30 resize-none"
+                    placeholder="Mô tả chi tiết lý do bạn muốn trả hàng..."></textarea>
+            </div>
+
+            <!-- Evidence Images -->
+            <div class="mb-6">
+                <label class="text-xs uppercase tracking-widest text-outline font-label">Hình ảnh chứng minh (tối đa 3 ảnh)</label>
+                <div class="grid grid-cols-3 gap-3 mt-2">
+                    <div class="upload-zone p-3 text-center cursor-pointer" onclick="document.getElementById('evidence-1').click()">
+                        <input type="file" name="evidence_image_1" id="evidence-1" accept="image/*" class="hidden" onchange="previewEvidence(this, 'preview-1')">
+                        <div id="preview-1" class="flex flex-col items-center justify-center min-h-[80px]">
+                            <span class="material-symbols-outlined text-outline/40 text-2xl">add_photo_alternate</span>
+                            <span class="text-[10px] text-outline/60 mt-1">Ảnh 1</span>
+                        </div>
+                    </div>
+                    <div class="upload-zone p-3 text-center cursor-pointer" onclick="document.getElementById('evidence-2').click()">
+                        <input type="file" name="evidence_image_2" id="evidence-2" accept="image/*" class="hidden" onchange="previewEvidence(this, 'preview-2')">
+                        <div id="preview-2" class="flex flex-col items-center justify-center min-h-[80px]">
+                            <span class="material-symbols-outlined text-outline/40 text-2xl">add_photo_alternate</span>
+                            <span class="text-[10px] text-outline/60 mt-1">Ảnh 2</span>
+                        </div>
+                    </div>
+                    <div class="upload-zone p-3 text-center cursor-pointer" onclick="document.getElementById('evidence-3').click()">
+                        <input type="file" name="evidence_image_3" id="evidence-3" accept="image/*" class="hidden" onchange="previewEvidence(this, 'preview-3')">
+                        <div id="preview-3" class="flex flex-col items-center justify-center min-h-[80px]">
+                            <span class="material-symbols-outlined text-outline/40 text-2xl">add_photo_alternate</span>
+                            <span class="text-[10px] text-outline/60 mt-1">Ảnh 3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="closeRefundModal()" class="flex-1 bg-surface-container-highest hover:bg-surface-bright text-on-surface py-3 rounded-xl font-headline font-bold text-sm transition-all">
+                    Hủy
+                </button>
+                <button type="submit" class="flex-1 py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%); color: #1a1a1a;">
+                    <span class="material-symbols-outlined text-base">send</span>
+                    Gửi yêu cầu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Refund Modal ──
+    function openRefundModal(txId) {
+        document.getElementById('refund-modal-tx-id').textContent = txId;
+        document.getElementById('refund-tx-id').value = txId;
+        document.getElementById('refund-modal').classList.remove('hidden');
+        document.getElementById('refund-form').reset();
+        document.getElementById('other-reason-box').classList.add('hidden');
+        // Reset image previews
+        ['preview-1', 'preview-2', 'preview-3'].forEach(function(id) {
+            var el = document.getElementById(id);
+            el.innerHTML = '<span class="material-symbols-outlined text-outline/40 text-2xl">add_photo_alternate</span><span class="text-[10px] text-outline/60 mt-1">Ảnh</span>';
+        });
+    }
+
+    function closeRefundModal() {
+        document.getElementById('refund-modal').classList.add('hidden');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('refund-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeRefundModal();
+    });
+
+    function toggleOtherReason() {
+        var otherBox = document.getElementById('other-reason-box');
+        var reasonRadios = document.querySelectorAll('input[name="reason"]');
+        var selectedValue = '';
+        reasonRadios.forEach(function(r) { if (r.checked) selectedValue = r.value; });
+        if (selectedValue === 'other') {
+            otherBox.classList.remove('hidden');
+            document.getElementById('reason-detail-input').required = true;
+        } else {
+            otherBox.classList.add('hidden');
+            document.getElementById('reason-detail-input').required = false;
+        }
+    }
+
+    // Also listen to all radio changes
+    document.querySelectorAll('input[name="reason"]').forEach(function(radio) {
+        radio.addEventListener('change', toggleOtherReason);
+    });
+
+    function previewEvidence(input, previewId) {
+        var previewEl = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                previewEl.innerHTML = '<img src="' + e.target.result + '" class="w-full h-20 object-cover rounded-lg" />';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // ── Tab switching ──
+    function switchTab(tab) {
+        var buyerSection = document.getElementById('section-buyer');
+        var sellerSection = document.getElementById('section-seller');
+        var tabBuyer = document.getElementById('tab-buyer');
+        var tabSeller = document.getElementById('tab-seller');
+
+        if (tab === 'buyer') {
+            buyerSection.classList.remove('hidden');
+            sellerSection.classList.add('hidden');
+            tabBuyer.classList.add('active');
+            tabBuyer.classList.remove('text-on-surface-variant');
+            tabSeller.classList.remove('active');
+            tabSeller.classList.add('text-on-surface-variant');
+        } else {
+            sellerSection.classList.remove('hidden');
+            buyerSection.classList.add('hidden');
+            tabSeller.classList.add('active');
+            tabSeller.classList.remove('text-on-surface-variant');
+            tabBuyer.classList.remove('active');
+            tabBuyer.classList.add('text-on-surface-variant');
+        }
+    }
+
+    // ── Truncate wallet addresses: first 6 … last 4 ──
+    (function() {
+        document.querySelectorAll('.wallet-truncate').forEach(function(el) {
+            var full = el.getAttribute('title') || el.textContent.trim();
+            if (full && full.startsWith('0x') && full.length > 12) {
+                el.textContent = full.slice(0, 6) + '…' + full.slice(-4);
+            }
+        });
+    })();
+
+    // ── Compute stats from DOM ──
+    (function() {
+        var allCards = document.querySelectorAll('[data-transaction-id]');
+        var totalVolume = 0;
+        var disputes = 0;
+
+        allCards.forEach(function(card) {
+            var amount = parseFloat(card.getAttribute('data-amount')) || 0;
+            totalVolume += amount;
+            if (card.getAttribute('data-status') === 'Disputed') {
+                disputes++;
+            }
+        });
+
+        var volumeEl = document.querySelector('[data-stat="volume"]');
+        if (volumeEl) {
+            volumeEl.textContent = formatVND(totalVolume);
+        }
+        var volumeEthEl = document.getElementById('stat-volume-eth');
+        if (volumeEthEl) {
+            volumeEthEl.setAttribute('data-vnd-price', totalVolume);
+        }
+        if (typeof convertAllVndToEth === 'function') convertAllVndToEth();
+        var disputeEl = document.querySelector('[data-stat="disputes"]');
+        if (disputeEl) {
+            disputeEl.textContent = disputes;
+        }
+    })();
+</script>
+{% endblock %}

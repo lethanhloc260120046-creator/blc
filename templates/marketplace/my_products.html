@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sản phẩm của tôi — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .product-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .product-card:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+        transform: translateY(-2px);
+    }
+    .badge-available {
+        background: rgba(78, 222, 163, 0.12);
+        color: #4edea3;
+    }
+    .badge-pending {
+        background: rgba(255, 213, 79, 0.12);
+        color: #ffd54f;
+    }
+    .badge-hidden {
+        background: rgba(255, 180, 171, 0.12);
+        color: #ffb4ab;
+    }
+    .badge-sold {
+        background: rgba(144, 144, 151, 0.12);
+        color: #909097;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-10">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-[#003824] text-2xl" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Sản phẩm của tôi</h1>
+                <p class="text-sm text-on-surface-variant font-body">Quản lý các sản phẩm bạn đã đăng bán</p>
+            </div>
+        </div>
+        <a href="{% url 'marketplace:sell_item' %}" class="flex items-center gap-2 bg-primary text-on-primary font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm hover:shadow-lg hover:shadow-primary/25">
+            <span class="material-symbols-outlined text-base">add</span>
+            Đăng sản phẩm
+        </a>
+    </div>
+
+    {% if products %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for product in products %}
+        <div class="product-card overflow-hidden">
+            <!-- Image -->
+            <div class="aspect-[4/3] bg-surface-container-lowest relative">
+                {% if product.get_image_url %}
+                <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover" />
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl text-outline/30">image</span>
+                </div>
+                {% endif %}
+                <!-- Status Badge -->
+                <div class="absolute top-3 left-3">
+                    {% if product.status == 'AVAILABLE' %}
+                    <span class="badge-available text-[10px] font-headline font-bold px-3 py-1 rounded-full">Đang bán</span>
+                    {% elif product.status == 'PENDING_APPROVAL' %}
+                    <span class="badge-pending text-[10px] font-headline font-bold px-3 py-1 rounded-full">Chờ duyệt</span>
+                    {% elif product.status == 'HIDDEN' %}
+                    <span class="badge-hidden text-[10px] font-headline font-bold px-3 py-1 rounded-full">Đã ẩn</span>
+                    {% elif product.status == 'SOLD' %}
+                    <span class="badge-sold text-[10px] font-headline font-bold px-3 py-1 rounded-full">Đã bán</span>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Info -->
+            <div class="p-5 space-y-3">
+                <h3 class="text-sm font-headline font-bold text-[#dae2fd] truncate">{{ product.name }}</h3>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-lg font-headline font-extrabold text-primary">{{ product.price|floatformat:0 }} ₫</div>
+                        <div class="text-[10px] text-on-surface-variant font-body">{{ product.condition }}</div>
+                    </div>
+                    <div class="text-[10px] text-outline">{{ product.created_at|date:"d/m/Y" }}</div>
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <a href="{% url 'marketplace:product_detail' product.id %}" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold text-xs transition-colors no-underline">
+                        <span class="material-symbols-outlined text-sm">visibility</span>
+                        Xem
+                    </a>
+                    <a href="{% url 'marketplace:edit_product' product.id %}" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-headline font-bold text-xs transition-colors no-underline">
+                        <span class="material-symbols-outlined text-sm">edit</span>
+                        Sửa
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <span class="material-symbols-outlined text-5xl text-outline/30">inventory_2</span>
+        <p class="text-lg text-on-surface-variant font-headline font-bold mt-4">Bạn chưa đăng sản phẩm nào</p>
+        <p class="text-sm text-outline font-body mt-2">Bắt đầu bán hàng ngay!</p>
+        <a href="{% url 'marketplace:sell_item' %}" class="inline-flex items-center gap-2 bg-primary text-on-primary font-headline font-bold py-3 px-6 rounded-xl mt-6 no-underline hover:shadow-lg hover:shadow-primary/25 transition-all">
+            <span class="material-symbols-outlined">add</span>
+            Đăng sản phẩm đầu tiên
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

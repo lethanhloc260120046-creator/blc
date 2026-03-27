@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .dashboard-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .dashboard-card:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .fee-card {
+        background: linear-gradient(135deg, rgba(78, 222, 163, 0.08) 0%, rgba(0, 147, 101, 0.06) 100%);
+        border: 1px solid rgba(78, 222, 163, 0.18);
+        border-radius: 1.25rem;
+    }
+
+    .contract-card {
+        background: linear-gradient(135deg, rgba(255, 213, 79, 0.06) 0%, rgba(255, 143, 0, 0.04) 100%);
+        border: 1px solid rgba(255, 213, 79, 0.15);
+        border-radius: 1.25rem;
+    }
+
+    .stat-mini {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+    }
+
+    .recent-row {
+        transition: background 0.15s;
+    }
+    .recent-row:hover {
+        background: rgba(78, 222, 163, 0.04);
+    }
+
+    .etherscan-link {
+        background: rgba(78, 222, 163, 0.08);
+        border: 1px solid rgba(78, 222, 163, 0.2);
+        transition: all 0.2s;
+    }
+    .etherscan-link:hover {
+        background: rgba(78, 222, 163, 0.15);
+        border-color: rgba(78, 222, 163, 0.4);
+    }
+
+    .btn-refund-mgmt {
+        background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-refund-mgmt:hover {
+        box-shadow: 0 0 24px rgba(255, 213, 79, 0.3);
+        transform: scale(1.02);
+    }
+    .btn-refund-mgmt:active { transform: scale(0.97); }
+
+    .pulse-pending {
+        animation: pulse-yellow 2s ease-in-out infinite;
+    }
+    @keyframes pulse-yellow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 213, 79, 0.5); }
+        50% { box-shadow: 0 0 0 8px rgba(255, 213, 79, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Page Header ═══════════════════════ -->
+    <div class="flex items-center justify-between mb-10">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">admin_panel_settings</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Admin Dashboard</h1>
+                <p class="text-sm text-on-surface-variant font-body">Thống kê phí sàn, quản lý hợp đồng & yêu cầu hoàn tiền</p>
+            </div>
+        </div>
+        <a href="{% url 'transactions:history' %}" class="hidden sm:flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            My Orders
+        </a>
+    </div>
+
+    <!-- ═══════════════════════ Fee Revenue Card ═══════════════════════ -->
+    <div class="fee-card p-8 mb-8">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">paid</span>
+            </div>
+            <div>
+                <h2 class="text-lg font-headline font-extrabold text-[#dae2fd]">Doanh thu phí sàn</h2>
+                <p class="text-xs text-on-surface-variant font-body">Phí {{ fee_percent }}% trên mỗi giao dịch hoàn tất</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Total Fees VND -->
+            <div class="space-y-1">
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label">Tổng phí đã thu (VND)</div>
+                <div class="text-3xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ total_fees_vnd }}">{{ total_fees_vnd|floatformat:0 }} ₫</div>
+                <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ total_fees_vnd }}"></div>
+            </div>
+
+            <!-- Completed Volume -->
+            <div class="space-y-1">
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label">Tổng doanh số hoàn tất</div>
+                <div class="text-3xl font-headline font-extrabold text-[#dae2fd] vnd-price" data-vnd="{{ completed_volume }}">{{ completed_volume|floatformat:0 }} ₫</div>
+                <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ completed_volume }}"></div>
+            </div>
+
+            <!-- Completed Count -->
+            <div class="space-y-1">
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label">Giao dịch hoàn tất</div>
+                <div class="text-3xl font-headline font-extrabold text-[#dae2fd]">{{ completed_count }}</div>
+                <div class="text-xs text-on-surface-variant font-body">trên tổng {{ total_count }} giao dịch</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+        <!-- ═══════════════════════ Left: Stats Grid ═══════════════════════ -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Transaction Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="stat-mini p-4 text-center">
+                    <div class="text-2xl font-headline font-extrabold text-[#dae2fd]">{{ total_count }}</div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Tổng GD</div>
+                </div>
+                <div class="stat-mini p-4 text-center" style="border-color: rgba(78, 222, 163, 0.15);">
+                    <div class="text-2xl font-headline font-extrabold text-primary">{{ funded_count }}</div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Đang giữ tiền</div>
+                </div>
+                <div class="stat-mini p-4 text-center" style="border-color: rgba(255, 213, 79, 0.15);">
+                    <div class="text-2xl font-headline font-extrabold" style="color: #ffd54f;">{{ disputed_count }}</div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Tranh chấp</div>
+                </div>
+                <div class="stat-mini p-4 text-center" style="border-color: rgba(255, 180, 171, 0.15);">
+                    <div class="text-2xl font-headline font-extrabold text-error">{{ cancelled_count }}</div>
+                    <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Đã hủy</div>
+                </div>
+            </div>
+
+            <!-- Total Volume -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary text-lg">account_balance</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Tổng khối lượng giao dịch</span>
+                </div>
+                <div class="text-2xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ total_volume }}">{{ total_volume|floatformat:0 }} ₫</div>
+                <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ total_volume }}"></div>
+            </div>
+
+            <!-- Recent Completed Transactions -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">history</span>
+                        <span class="text-sm font-headline font-bold text-[#dae2fd]">Giao dịch hoàn tất gần đây</span>
+                    </div>
+                    <span class="text-[10px] text-on-surface-variant font-label">Phí {{ fee_percent }}% mỗi GD</span>
+                </div>
+
+                {% if recent_completed %}
+                <div class="space-y-0 divide-y divide-outline-variant/10">
+                    {% for tx in recent_completed %}
+                    <div class="recent-row flex items-center gap-4 py-3 px-2 rounded-lg">
+                        <div class="w-10 h-10 rounded-lg overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                            {% if tx.product.get_image_url %}
+                            <img src="{{ tx.product.get_image_url }}" alt="" class="w-full h-full object-cover"/>
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-outline/30 text-sm">image</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</div>
+                            <div class="text-[10px] text-on-surface-variant font-body">Order #{{ tx.id }} — {{ tx.updated_at|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div class="text-xs font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                            <div class="text-[10px] text-on-surface-variant font-body">Phí: <span class="text-primary font-bold">{{ tx.amount|floatformat:0 }}₫ × {{ fee_percent }}%</span></div>
+                        </div>
+                        {% if tx.smart_contract_tx_hash %}
+                        <a href="{{ etherscan_base_url }}/tx/{{ tx.smart_contract_tx_hash }}" target="_blank" rel="noopener" class="text-primary/50 hover:text-primary transition-colors flex-shrink-0" title="Xem trên Etherscan">
+                            <span class="material-symbols-outlined text-sm">open_in_new</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <span class="material-symbols-outlined text-3xl text-outline/30">receipt_long</span>
+                    <p class="text-sm text-on-surface-variant font-body mt-2">Chưa có giao dịch hoàn tất nào.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- ═══════════════════════ Right: Contract Info + Quick Actions ═══════════════════════ -->
+        <div class="space-y-6">
+
+            <!-- Smart Contract Info -->
+            <div class="contract-card p-6">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255, 213, 79, 0.12);">
+                        <span class="material-symbols-outlined text-xl" style="color: #ffd54f; font-variation-settings: 'FILL' 1;">token</span>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-headline font-bold text-[#dae2fd]">Smart Contract</h3>
+                        <p class="text-[10px] text-on-surface-variant font-body">EscrowMarketplace v2</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-5">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Contract Address</div>
+                        <div class="font-mono text-xs text-[#dae2fd]/80 break-all leading-relaxed">{{ contract_address }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Phí sàn hiện tại</div>
+                        <div class="text-lg font-headline font-extrabold" style="color: #ffd54f;" id="fee-display">{{ fee_percent }}%</div>
+                        <div class="text-[10px] text-on-surface-variant font-body">(Đọc từ DB — bấm nút bên dưới để đồng bộ từ blockchain)</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Network</div>
+                        <div class="text-xs font-headline font-bold text-[#dae2fd]">Sepolia Testnet</div>
+                    </div>
+                </div>
+
+                <!-- Etherscan Links -->
+                <div class="space-y-2">
+                    <a href="{{ etherscan_url }}" target="_blank" rel="noopener"
+                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
+                        <span class="material-symbols-outlined text-base">open_in_new</span>
+                        Xem Contract trên Etherscan
+                    </a>
+                    <a href="{{ etherscan_url }}#internaltx" target="_blank" rel="noopener"
+                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
+                        <span class="material-symbols-outlined text-base">swap_horiz</span>
+                        Xem Internal Transactions
+                    </a>
+                    <a href="{{ etherscan_url }}#events" target="_blank" rel="noopener"
+                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
+                        <span class="material-symbols-outlined text-base">event_note</span>
+                        Xem Event Logs
+                    </a>
+                </div>
+            </div>
+
+            <!-- On-chain Fee Sync -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">sync</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Đồng bộ phí từ Blockchain</span>
+                </div>
+                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
+                    Đọc % phí sàn hiện tại trực tiếp từ Smart Contract trên blockchain.
+                </p>
+                <button onclick="syncFeeFromChain()" id="sync-fee-btn"
+                    class="w-full px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold text-xs flex items-center justify-center gap-2 transition-all">
+                    <span class="material-symbols-outlined text-sm">refresh</span>
+                    Đọc feePercent() từ Contract
+                </button>
+                <div id="sync-fee-result" class="hidden mt-3 text-center text-sm font-headline font-bold text-primary"></div>
+            </div>
+
+            <!-- Quick Action: Product Management -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">inventory_2</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý sản phẩm</span>
+                </div>
+                {% if pending_products > 0 %}
+                <div class="flex items-center gap-2 p-2.5 rounded-lg mb-3" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
+                    <span class="material-symbols-outlined text-sm" style="color: #ffd54f;">priority_high</span>
+                    <span class="text-xs font-headline font-bold" style="color: #ffd54f;">{{ pending_products }} SP chờ duyệt</span>
+                </div>
+                {% else %}
+                <p class="text-xs text-on-surface-variant font-body mb-3 leading-relaxed">
+                    Duyệt sản phẩm mới, sửa thông tin, ẩn/hiện sản phẩm.
+                </p>
+                {% endif %}
+                <a href="{% url 'marketplace:admin_product_list' %}{% if pending_products > 0 %}?status=PENDING_APPROVAL{% endif %}"
+                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
+                   style="background: linear-gradient(135deg, #4edea3 0%, #009365 100%); color: #003824;">
+                    <span class="material-symbols-outlined text-base">shield_person</span>
+                    Quản lý sản phẩm
+                </a>
+            </div>
+
+            <!-- Quick Action: User Management -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">group</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý người dùng</span>
+                </div>
+                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
+                    {{ total_users }} người dùng đã đăng ký. Khóa/mở khóa tài khoản.
+                </p>
+                <a href="{% url 'users:admin_user_list' %}"
+                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
+                   style="background: rgba(190, 198, 224, 0.12); border: 1px solid rgba(190, 198, 224, 0.2); color: #bec6e0;">
+                    <span class="material-symbols-outlined text-base">group</span>
+                    Quản lý người dùng
+                </a>
+            </div>
+
+            <!-- Quick Action: Refund Management -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">gavel</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý yêu cầu trả hàng</span>
+                </div>
+
+                {% if pending_refunds > 0 %}
+                <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center pulse-pending" style="background: rgba(255, 213, 79, 0.15);">
+                        <span class="material-symbols-outlined text-sm" style="color: #ffd54f;">priority_high</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-headline font-bold" style="color: #ffd54f;">{{ pending_refunds }} yêu cầu chờ duyệt</div>
+                        <div class="text-[10px] text-on-surface-variant font-body">Cần xử lý ngay</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background: rgba(78, 222, 163, 0.06); border: 1px solid rgba(78, 222, 163, 0.12);">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(78, 222, 163, 0.12);">
+                        <span class="material-symbols-outlined text-sm text-primary">check_circle</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-headline font-bold text-primary">Không có yêu cầu chờ</div>
+                        <div class="text-[10px] text-on-surface-variant font-body">Tất cả đã được xử lý</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <a href="{% url 'transactions:admin_refund_list' %}"
+                   class="btn-refund-mgmt w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2" style="color: #1a1a1a;">
+                    <span class="material-symbols-outlined text-base">shield_person</span>
+                    Vào trang duyệt yêu cầu
+                    {% if pending_refunds > 0 %}
+                    <span class="bg-[#1a1a1a]/20 text-[#1a1a1a] text-[10px] font-bold px-2 py-0.5 rounded-full">{{ pending_refunds }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function syncFeeFromChain() {
+        var btn = document.getElementById('sync-fee-btn');
+        var resultEl = document.getElementById('sync-fee-result');
+        var originalText = btn.innerHTML;
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">refresh</span> Đang đọc...';
+
+            await initContract();
+            var fee = await getFeePercent();
+
+            document.getElementById('fee-display').textContent = fee + '%';
+            resultEl.textContent = 'Phí sàn on-chain: ' + fee + '%';
+            resultEl.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('syncFeeFromChain error:', error);
+            resultEl.textContent = 'Lỗi: ' + (error.message || 'Không đọc được');
+            resultEl.classList.remove('hidden');
+            resultEl.style.color = '#ffb4ab';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .bento-stat {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .bento-stat:hover {
+        border-color: rgba(78, 222, 163, 0.25);
+        transform: translateY(-2px);
+    }
+    .wallet-card {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.12);
+    }
+    .tx-row {
+        background: rgba(23, 31, 51, 0.7);
+        border: 1px solid rgba(78, 222, 163, 0.06);
+        border-radius: 0.75rem;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .tx-row:hover {
+        border-color: rgba(78, 222, 163, 0.18);
+        background: rgba(23, 31, 51, 0.95);
+    }
+    .badge-created {
+        background: rgba(144, 144, 151, 0.15);
+        color: #909097;
+    }
+    .badge-funded {
+        background: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
+    }
+    .badge-completed {
+        background: rgba(78, 222, 163, 0.15);
+        color: #4edea3;
+    }
+    .badge-cancelled {
+        background: rgba(255, 180, 171, 0.15);
+        color: #ffb4ab;
+    }
+    .wallet-address-full {
+        opacity: 0;
+        position: absolute;
+        background: #171f33;
+        border: 1px solid rgba(78, 222, 163, 0.2);
+        border-radius: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 20;
+        top: 100%;
+        left: 0;
+        margin-top: 0.25rem;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+    .wallet-hover-trigger:hover .wallet-address-full {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .pulse-dot {
+        animation: pulse-green 2s ease-in-out infinite;
+    }
+    @keyframes pulse-green {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.5); }
+        50% { box-shadow: 0 0 0 6px rgba(78, 222, 163, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Breadcrumb ═══════════════════════ -->
+    <nav class="flex items-center gap-2 text-xs font-body text-outline mb-8">
+        <a href="{% url 'marketplace:product_list' %}" class="hover:text-primary transition-colors">Home</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        <span class="text-on-surface/70">Profile</span>
+    </nav>
+
+    <!-- ═══════════════════════ Profile Header / Wallet Card ═══════════════════════ -->
+    <div class="wallet-card rounded-2xl p-8 mb-10 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute top-0 right-0 w-72 h-72 opacity-5 pointer-events-none">
+            <svg class="w-full h-full fill-primary" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path d="M44.7,-76.4C58.1,-69.2,69.2,-58.1,76.4,-44.7C83.7,-31.4,87.1,-15.7,85.6,-0.9C84,13.9,77.5,27.8,69.2,40.1C60.9,52.4,50.7,63.2,38.3,70.9C25.9,78.6,12.9,83.1,-0.6,84.1C-14.1,85.1,-28.1,82.5,-41,75.7C-53.8,68.9,-65.4,57.8,-73.4,44.5C-81.4,31.2,-85.8,15.6,-85.1,0.4C-84.4,-14.8,-78.6,-29.6,-69.3,-41.8C-60.1,-54.1,-47.4,-63.8,-33.8,-70.8C-20.2,-77.8,-5.8,-82.1,9.4,-82.1C24.7,-82.1,31.2,-83.5,44.7,-76.4Z" transform="translate(100 100)"></path>
+            </svg>
+        </div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
+            <!-- Avatar -->
+            <div class="w-20 h-20 rounded-2xl bg-gradient-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-[#003824] text-4xl" style="font-variation-settings: 'FILL' 1;">person</span>
+            </div>
+
+            <!-- User Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-1">
+                    <h1 class="text-2xl font-headline font-extrabold text-[#dae2fd] tracking-tight">
+                        {{ profile.user.username }}
+                    </h1>
+                    <span class="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[10px] font-bold font-headline tracking-wide px-2.5 py-1 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+                        Verified
+                    </span>
+                </div>
+
+                <!-- Wallet Address (truncated, full on hover) -->
+                <div class="wallet-hover-trigger relative inline-block mt-1">
+                    <div class="flex items-center gap-2 bg-surface-container-lowest/80 px-4 py-2 rounded-xl cursor-pointer group">
+                        <span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                        <span class="text-sm font-mono text-on-surface-variant group-hover:text-on-surface transition-colors" id="wallet-truncated">
+                            {{ profile.wallet_address }}
+                        </span>
+                        <button onclick="copyWallet()" class="text-outline hover:text-primary transition-colors" title="Copy address">
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                        </button>
+                    </div>
+                    <!-- Full address tooltip on hover -->
+                    <div class="wallet-address-full font-mono text-on-surface" id="wallet-full">
+                        {{ profile.wallet_address }}
+                    </div>
+                </div>
+
+                <p class="text-xs text-on-surface-variant mt-2">
+                    Member since {{ profile.user.date_joined|date:"F Y" }}
+                </p>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="flex gap-3 flex-shrink-0">
+                <a href="{% url 'marketplace:sell_item' %}"
+                   class="bg-primary text-on-primary px-5 py-2.5 rounded-xl font-headline font-bold text-sm hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all no-underline flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">add_business</span>
+                    Sell Item
+                </a>
+                <a href="{% url 'marketplace:cart' %}"
+                   class="bg-surface-container-highest text-on-surface px-5 py-2.5 rounded-xl font-headline font-bold text-sm hover:bg-surface-bright transition-all no-underline flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">shopping_cart</span>
+                    Cart
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ Stats Bento Grid ═══════════════════════ -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <!-- Total Transactions -->
+        <div class="bento-stat flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Total Transactions</span>
+            </div>
+            <span class="text-3xl font-headline font-extrabold text-on-surface">{{ transactions|length }}</span>
+        </div>
+
+        <!-- Completed -->
+        <div class="bento-stat flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#4edea3] text-lg">check_circle</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Completed</span>
+            </div>
+            <span class="text-3xl font-headline font-extrabold text-[#4edea3]" id="stat-completed">0</span>
+        </div>
+
+        <!-- In Progress (Created + Funded) -->
+        <div class="bento-stat flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#60a5fa] text-lg">hourglass_top</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">In Progress</span>
+            </div>
+            <span class="text-3xl font-headline font-extrabold text-[#60a5fa]" id="stat-progress">0</span>
+        </div>
+
+        <!-- Cancelled -->
+        <div class="bento-stat flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#ffb4ab] text-lg">cancel</span>
+                <span class="text-[10px] uppercase tracking-widest text-outline font-label">Cancelled</span>
+            </div>
+            <span class="text-3xl font-headline font-extrabold text-[#ffb4ab]" id="stat-cancelled">0</span>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ Transaction History ═══════════════════════ -->
+    <section>
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-xl">history</span>
+                <h2 class="text-xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Transaction History</h2>
+            </div>
+            <a href="{% url 'transactions:history' %}"
+               class="text-primary text-xs font-headline font-bold uppercase tracking-widest hover:underline no-underline flex items-center gap-1">
+                View All
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+            </a>
+        </div>
+
+        {% if transactions %}
+        <!-- Table Header (desktop) -->
+        <div class="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[10px] uppercase tracking-widest text-outline font-label mb-2">
+            <div class="col-span-4">Product</div>
+            <div class="col-span-2">Amount</div>
+            <div class="col-span-2">Role</div>
+            <div class="col-span-2">Status</div>
+            <div class="col-span-2 text-right">Date</div>
+        </div>
+
+        <!-- Transaction Rows -->
+        <div class="flex flex-col gap-2">
+            {% for tx in transactions %}
+            <div class="tx-row p-4 md:p-5">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center">
+                    <!-- Product Name -->
+                    <div class="md:col-span-4 flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-outline/50 text-base">inventory_2</span>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-headline font-bold text-sm text-on-surface truncate block">{{ tx.product.name }}</span>
+                            <span class="text-[10px] text-outline md:hidden">{{ tx.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="md:col-span-2">
+                        <span class="font-headline font-extrabold text-primary text-sm vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</span>
+                        <span class="text-[10px] text-on-surface-variant font-body vnd-to-eth block" data-vnd-price="{{ tx.amount }}"></span>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="md:col-span-2">
+                        {% if tx.buyer == request.user %}
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[13px]">shopping_bag</span>
+                            Buyer
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[13px]">storefront</span>
+                            Seller
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div class="md:col-span-2">
+                        {% if tx.status == 'Created' %}
+                        <span class="badge-created inline-flex items-center gap-1.5 text-[11px] font-bold font-headline px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#909097]"></span>
+                            Created
+                        </span>
+                        {% elif tx.status == 'Funded' %}
+                        <span class="badge-funded inline-flex items-center gap-1.5 text-[11px] font-bold font-headline px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#60a5fa]"></span>
+                            Funded
+                        </span>
+                        {% elif tx.status == 'Completed' %}
+                        <span class="badge-completed inline-flex items-center gap-1.5 text-[11px] font-bold font-headline px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#4edea3]"></span>
+                            Completed
+                        </span>
+                        {% elif tx.status == 'Cancelled' %}
+                        <span class="badge-cancelled inline-flex items-center gap-1.5 text-[11px] font-bold font-headline px-3 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#ffb4ab]"></span>
+                            Cancelled
+                        </span>
+                        {% else %}
+                        <span class="badge-created inline-flex items-center gap-1.5 text-[11px] font-bold font-headline px-3 py-1 rounded-full">
+                            {{ tx.status }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Date -->
+                    <div class="md:col-span-2 hidden md:block text-right">
+                        <span class="text-xs text-on-surface-variant font-body">{{ tx.created_at|date:"M d, Y" }}</span>
+                        <span class="block text-[10px] text-outline">{{ tx.created_at|date:"g:i A" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Empty Transactions State -->
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-4xl text-outline/30">receipt_long</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-on-surface mb-2">No Transactions Yet</h3>
+            <p class="text-on-surface-variant text-sm max-w-sm leading-relaxed">
+                Your transaction history will appear here once you buy or sell items through the escrow marketplace.
+            </p>
+            <a href="{% url 'marketplace:product_list' %}"
+               class="mt-6 bg-primary text-on-primary px-6 py-2.5 rounded-xl font-headline font-bold text-sm hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all no-underline">
+                Browse Collection
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Truncate wallet address display: first 6 ... last 4 ──
+    (function() {
+        const el = document.getElementById('wallet-truncated');
+        if (el) {
+            const full = el.textContent.trim();
+            if (full.length > 12) {
+                el.textContent = full.slice(0, 6) + '…' + full.slice(-4);
+            }
+        }
+    })();
+
+    // ── Copy wallet address to clipboard ──
+    function copyWallet() {
+        const fullEl = document.getElementById('wallet-full');
+        if (fullEl) {
+            const address = fullEl.textContent.trim();
+            navigator.clipboard.writeText(address).then(function() {
+                // Brief visual feedback
+                const btn = event.currentTarget;
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if (icon) {
+                    icon.textContent = 'check';
+                    setTimeout(function() { icon.textContent = 'content_copy'; }, 1500);
+                }
+            });
+        }
+    }
+
+    // ── Calculate stats from transaction rows ──
+    (function() {
+        const badges = document.querySelectorAll('.tx-row [class*="badge-"]');
+        let completed = 0, progress = 0, cancelled = 0;
+
+        badges.forEach(function(badge) {
+            if (badge.classList.contains('badge-completed')) completed++;
+            else if (badge.classList.contains('badge-funded')) progress++;
+            else if (badge.classList.contains('badge-created')) progress++;
+            else if (badge.classList.contains('badge-cancelled')) cancelled++;
+        });
+
+        const statCompleted = document.getElementById('stat-completed');
+        const statProgress = document.getElementById('stat-progress');
+        const statCancelled = document.getElementById('stat-cancelled');
+
+        if (statCompleted) statCompleted.textContent = completed;
+        if (statProgress) statProgress.textContent = progress;
+        if (statCancelled) statCancelled.textContent = cancelled;
+    })();
+</script>
+{% endblock %}

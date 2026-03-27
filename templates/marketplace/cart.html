@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cart-card {
+        background: rgba(23, 31, 51, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+    .cart-card:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+        transform: translateY(-1px);
+    }
+    .summary-card {
+        background: rgba(45, 52, 73, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(78, 222, 163, 0.12);
+    }
+    .btn-remove {
+        transition: background 0.2s, color 0.2s, transform 0.15s;
+    }
+    .btn-remove:hover {
+        background: rgba(255, 180, 171, 0.12);
+        color: #ffb4ab;
+        transform: scale(1.05);
+    }
+    .btn-remove:active {
+        transform: scale(0.95);
+    }
+    .btn-checkout {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-checkout:hover {
+        box-shadow: 0 0 28px rgba(78, 222, 163, 0.35);
+        transform: scale(1.02);
+    }
+    .btn-checkout:active {
+        transform: scale(0.97);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- ═══════════════════════ Breadcrumb ═══════════════════════ -->
+    <nav class="flex items-center gap-2 text-xs font-body text-outline mb-8">
+        <a href="{% url 'marketplace:product_list' %}" class="hover:text-primary transition-colors">Home</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        <span class="text-on-surface/70">Shopping Cart</span>
+    </nav>
+
+    <!-- ═══════════════════════ Page Header ═══════════════════════ -->
+    <div class="flex items-center gap-4 mb-10">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-2xl">shopping_cart</span>
+        </div>
+        <div>
+            <h1 class="text-3xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Shopping Cart</h1>
+            <p class="text-on-surface-variant text-sm font-body mt-0.5">
+                {% if cart_items %}
+                    {{ cart_items|length }} item{{ cart_items|length|pluralize }} in your cart
+                {% else %}
+                    Your cart is empty
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if cart_items %}
+    <!-- ═══════════════════════ Main Grid: Items + Summary ═══════════════════════ -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- ─────────── LEFT: Cart Items (col-span-2) ─────────── -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            {% for item in cart_items %}
+            <div class="cart-card flex flex-col sm:flex-row overflow-hidden">
+                <!-- Product Image -->
+                <div class="sm:w-40 sm:h-auto h-48 flex-shrink-0 overflow-hidden">
+                    {% if item.product.get_image_url %}
+                    <img src="{{ item.product.get_image_url }}"
+                         alt="{{ item.product.name }}"
+                         class="w-full h-full object-cover" />
+                    {% else %}
+                    <div class="w-full h-full bg-surface-container-highest flex items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl text-outline/30">inventory_2</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Product Details -->
+                <div class="flex-1 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-headline font-bold text-lg text-on-surface leading-tight truncate">
+                            {{ item.product.name }}
+                        </h3>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span class="inline-flex items-center bg-surface-container-lowest/80 text-primary text-[10px] font-bold px-2.5 py-1 rounded-lg border border-primary/20 uppercase">
+                                {{ item.product.condition }}
+                            </span>
+                            {% if item.product.category %}
+                            <span class="text-[11px] text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-lg font-label">
+                                {{ item.product.category.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ item.product.price }}">{{ item.product.price|floatformat:0 }} ₫</span>
+                            <span class="text-xs text-on-surface-variant font-body vnd-to-eth block" data-vnd-price="{{ item.product.price }}"></span>
+                        </div>
+                    </div>
+
+                    <!-- Remove Button -->
+                    <div class="flex-shrink-0">
+                        <form method="POST" action="{% url 'marketplace:remove_from_cart' item.id %}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn-remove flex items-center gap-2 text-on-surface-variant text-sm font-body px-4 py-2.5 rounded-xl bg-surface-container-highest"
+                                    title="Remove from cart">
+                                <span class="material-symbols-outlined text-base">delete</span>
+                                <span class="hidden sm:inline">Remove</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ─────────── RIGHT: Order Summary (col-span-1) ─────────── -->
+        <div class="lg:col-span-1">
+            <div class="summary-card rounded-2xl p-6 space-y-6 sticky top-28">
+                <h2 class="font-headline font-bold text-lg text-on-surface">Order Summary</h2>
+
+                <!-- Line Items -->
+                <div class="space-y-3">
+                    {% for item in cart_items %}
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm text-on-surface/80 font-body truncate">{{ item.product.name }}</span>
+                        <span class="text-sm text-on-surface font-headline font-bold whitespace-nowrap vnd-price" data-vnd="{{ item.product.price }}">{{ item.product.price|floatformat:0 }} ₫</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-outline-variant/15"></div>
+
+                <!-- Total -->
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-on-surface-variant font-body uppercase tracking-widest">Total</span>
+                    <div>
+                        <span class="text-2xl font-headline font-extrabold text-primary" id="cart-total"></span>
+                        <span class="text-xs text-on-surface-variant font-body vnd-to-eth block" id="cart-total-eth" data-vnd-price="0"></span>
+                    </div>
+                </div>
+
+                <!-- Escrow Badge -->
+                <div class="flex items-center justify-center gap-1.5 bg-primary/5 px-3 py-2 rounded-full">
+                    <span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+                    <span class="text-[10px] text-primary font-headline font-bold tracking-wide">Escrow Protected</span>
+                </div>
+
+                <!-- Checkout Button -->
+                <a href="{% url 'marketplace:product_list' %}"
+                   class="btn-checkout w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-[#003824] font-headline font-extrabold tracking-tight text-sm no-underline">
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                    Proceed to Checkout
+                </a>
+
+                <!-- Continue Shopping -->
+                <a href="{% url 'marketplace:product_list' %}"
+                   class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/25 text-primary font-headline font-bold tracking-tight text-sm bg-transparent hover:bg-primary/5 transition-colors no-underline">
+                    <span class="material-symbols-outlined text-lg">arrow_back</span>
+                    Continue Shopping
+                </a>
+
+                <!-- Trust Badges -->
+                <div class="flex items-center justify-center gap-6 pt-1">
+                    <span class="flex items-center gap-1 text-[10px] text-outline/60 font-label">
+                        <span class="material-symbols-outlined text-[13px]">lock</span>
+                        Encrypted
+                    </span>
+                    <span class="flex items-center gap-1 text-[10px] text-outline/60 font-label">
+                        <span class="material-symbols-outlined text-[13px]">shield</span>
+                        Buyer Protection
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ═══════════════════════ Empty Cart State ═══════════════════════ -->
+    <div class="flex flex-col items-center justify-center py-24 text-center">
+        <div class="w-24 h-24 rounded-full bg-surface-container-highest flex items-center justify-center mb-8">
+            <span class="material-symbols-outlined text-5xl text-outline/30">remove_shopping_cart</span>
+        </div>
+        <h2 class="font-headline font-extrabold text-2xl text-on-surface mb-3">Your Cart is Empty</h2>
+        <p class="text-on-surface-variant text-sm max-w-md leading-relaxed mb-8">
+            Looks like you haven't added any items to your cart yet.
+            Browse our collection of escrow-protected hardware and find your next upgrade.
+        </p>
+        <a href="{% url 'marketplace:product_list' %}"
+           class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-headline font-extrabold hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all no-underline flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">storefront</span>
+            Browse Collection
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Calculate and display cart total ──
+    (function() {
+        const totalEl = document.getElementById('cart-total');
+        if (!totalEl) return;
+
+        var lineItems = document.querySelectorAll('.summary-card .space-y-3 .vnd-price');
+        var total = 0;
+        lineItems.forEach(function(el) {
+            var val = parseFloat(el.getAttribute('data-vnd'));
+            if (!isNaN(val)) total += val;
+        });
+        totalEl.textContent = formatVND(total);
+        var ethEl = document.getElementById('cart-total-eth');
+        if (ethEl) ethEl.setAttribute('data-vnd-price', total);
+        if (typeof convertAllVndToEth === 'function') convertAllVndToEth();
+    })();
+</script>
+{% endblock %}

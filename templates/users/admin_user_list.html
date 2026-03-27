@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quản lý người dùng — Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .user-row {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.2s;
+    }
+    .user-row:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+    }
+    .badge-active {
+        background: rgba(78, 222, 163, 0.12);
+        color: #4edea3;
+    }
+    .badge-locked {
+        background: rgba(255, 180, 171, 0.12);
+        color: #ffb4ab;
+    }
+    .badge-admin {
+        background: rgba(255, 213, 79, 0.12);
+        color: #ffd54f;
+    }
+    .btn-lock {
+        background: rgba(255, 180, 171, 0.08);
+        border: 1px solid rgba(255, 180, 171, 0.2);
+        color: #ffb4ab;
+        transition: all 0.2s;
+    }
+    .btn-lock:hover {
+        background: rgba(255, 180, 171, 0.18);
+    }
+    .btn-unlock {
+        background: rgba(78, 222, 163, 0.08);
+        border: 1px solid rgba(78, 222, 163, 0.2);
+        color: #4edea3;
+        transition: all 0.2s;
+    }
+    .btn-unlock:hover {
+        background: rgba(78, 222, 163, 0.18);
+    }
+    .stat-chip {
+        background: rgba(45, 52, 73, 0.6);
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">group</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Quản lý người dùng</h1>
+                <p class="text-sm text-on-surface-variant font-body">Xem thông tin và quản lý trạng thái tài khoản</p>
+            </div>
+        </div>
+        <a href="{% url 'transactions:admin_dashboard' %}" class="flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            Dashboard
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <div class="stat-chip p-4 text-center" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(78, 222, 163, 0.08); border-radius: 1rem;">
+            <div class="text-2xl font-headline font-extrabold text-[#dae2fd]">{{ user_data|length }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Tổng users</div>
+        </div>
+        <div class="stat-chip p-4 text-center" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(78, 222, 163, 0.15); border-radius: 1rem;">
+            <div class="text-2xl font-headline font-extrabold text-primary" id="active-count">0</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Active</div>
+        </div>
+        <div class="stat-chip p-4 text-center" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(255, 180, 171, 0.15); border-radius: 1rem;">
+            <div class="text-2xl font-headline font-extrabold text-error" id="locked-count">0</div>
+            <div class="text-[10px] uppercase tracking-widest text-outline font-label mt-1">Locked</div>
+        </div>
+    </div>
+
+    <!-- User List -->
+    {% if user_data %}
+    <div class="space-y-4">
+        {% for item in user_data %}
+        <div class="user-row p-5 flex items-center gap-5">
+            <!-- Avatar -->
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style="background: {% if item.profile.user.is_staff %}rgba(255, 213, 79, 0.12){% elif item.profile.is_locked %}rgba(255, 180, 171, 0.08){% else %}rgba(78, 222, 163, 0.08){% endif %};">
+                <span class="material-symbols-outlined text-xl"
+                      style="color: {% if item.profile.user.is_staff %}#ffd54f{% elif item.profile.is_locked %}#ffb4ab{% else %}#4edea3{% endif %}; font-variation-settings: 'FILL' 1;">person</span>
+            </div>
+
+            <!-- User Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-mono text-[#dae2fd]/80 truncate">{{ item.profile.wallet_address }}</span>
+                    {% if item.profile.user.is_staff %}
+                    <span class="badge-admin text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Admin</span>
+                    {% endif %}
+                    {% if item.profile.is_locked %}
+                    <span class="badge-locked text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Đã khóa</span>
+                    {% else %}
+                    <span class="badge-active text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Active</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-on-surface-variant font-body">
+                    User #{{ item.profile.user.id }} · Tham gia {{ item.profile.user.date_joined|date:"d/m/Y" }}
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="hidden sm:flex items-center gap-3 flex-shrink-0">
+                <div class="stat-chip text-center">
+                    <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ item.product_count }}</div>
+                    <div class="text-[9px] text-outline font-label">SP</div>
+                </div>
+                <div class="stat-chip text-center">
+                    <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ item.tx_count }}</div>
+                    <div class="text-[9px] text-outline font-label">GD</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                {% if not item.profile.user.is_staff %}
+                <form method="POST" action="{% url 'users:admin_toggle_lock' item.profile.user.id %}" class="inline">
+                    {% csrf_token %}
+                    {% if item.profile.is_locked %}
+                    <button type="submit" class="btn-unlock px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">lock_open</span>
+                        Mở khóa
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn-lock px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1"
+                            onclick="return confirm('Bạn chắc chắn muốn khóa tài khoản này?')">
+                        <span class="material-symbols-outlined text-sm">lock</span>
+                        Khóa
+                    </button>
+                    {% endif %}
+                </form>
+                {% else %}
+                <span class="text-[10px] text-outline font-body italic">Admin account</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <span class="material-symbols-outlined text-5xl text-outline/30">group</span>
+        <p class="text-lg text-on-surface-variant font-headline font-bold mt-4">Chưa có người dùng nào</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Count active/locked users from DOM
+    var rows = document.querySelectorAll('.user-row');
+    var active = 0, locked = 0;
+    rows.forEach(function(row) {
+        if (row.querySelector('.badge-locked')) locked++;
+        else active++;
+    });
+    var activeEl = document.getElementById('active-count');
+    var lockedEl = document.getElementById('locked-count');
+    if (activeEl) activeEl.textContent = active;
+    if (lockedEl) lockedEl.textContent = locked;
+</script>
+{% endblock %}

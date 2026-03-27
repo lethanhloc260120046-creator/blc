@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Ambient glow behind the card ── */
+    .login-glow {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle, rgba(78, 222, 163, 0.08) 0%, transparent 70%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* ── Pulsing dot for status indicator ── */
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: .5; transform: scale(1.35); }
+    }
+    .pulse-dot {
+        animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+
+    /* ── Subtle shimmer on the MetaMask button ── */
+    @keyframes shimmer {
+        0%   { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    .btn-metamask {
+        background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-metamask::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255,255,255,0.08) 50%,
+            transparent 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 3s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    /* ── Spinner for loading state ── */
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(78, 222, 163, 0.25);
+        border-top-color: #4edea3;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="flex items-center justify-center min-h-[calc(100vh-5rem)] px-4 py-16 relative">
+
+    <!-- Ambient glow -->
+    <div class="login-glow"></div>
+
+    <!-- Card -->
+    <div class="glass-panel relative z-10 w-full max-w-md rounded-2xl p-10 shadow-2xl shadow-black/20 flex flex-col items-center gap-8">
+
+        <!-- ── Branding ── -->
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-on-primary text-3xl" style="font-variation-settings: 'FILL' 1;">
+                    shield
+                </span>
+            </div>
+            <h1 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">
+                TechEscrow P2P
+            </h1>
+            <p class="font-body text-sm text-on-surface-variant text-center leading-relaxed max-w-xs">
+                The decentralized marketplace secured by Kinetic Ledger smart contracts.
+            </p>
+        </div>
+
+        <!-- ── Divider ── -->
+        <div class="w-full h-px bg-outline-variant/15"></div>
+
+        <!-- ── Connect Button ── -->
+        <div class="w-full flex flex-col items-center gap-5">
+            <button
+                onclick="loginWithMetaMask()"
+                id="metamask-btn"
+                class="btn-metamask w-full text-on-primary font-headline font-bold text-base py-4 px-8 rounded-xl
+                       flex items-center justify-center gap-3
+                       hover:brightness-110 active:scale-[0.97] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">
+                    account_balance_wallet
+                </span>
+                Connect MetaMask
+            </button>
+
+            <!-- ── Loading / Status indicator (hidden by default) ── -->
+            <div id="login-status" class="hidden w-full flex flex-col items-center gap-3 py-2">
+                <div class="flex items-center gap-3">
+                    <div class="spinner"></div>
+                    <span id="login-status-text" class="font-body text-sm text-primary">
+                        Connecting to wallet…
+                    </span>
+                </div>
+                <div class="w-full bg-surface-container-lowest rounded-full h-1 overflow-hidden">
+                    <div class="h-full bg-primary/40 rounded-full w-1/3 animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Divider ── -->
+        <div class="w-full h-px bg-outline-variant/15"></div>
+
+        <!-- ── How it works ── -->
+        <div class="w-full space-y-4">
+            <h2 class="font-headline font-bold text-xs uppercase tracking-widest text-on-surface-variant/70">
+                How Web3 Authentication Works
+            </h2>
+
+            <div class="flex flex-col gap-3">
+                <!-- Step 1 -->
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center">
+                        <span class="font-headline font-bold text-xs text-primary">01</span>
+                    </div>
+                    <div>
+                        <p class="font-body text-sm text-on-surface/90 leading-relaxed">
+                            <strong class="text-on-surface">Connect</strong> — MetaMask prompts you to share your public wallet address.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center">
+                        <span class="font-headline font-bold text-xs text-primary">02</span>
+                    </div>
+                    <div>
+                        <p class="font-body text-sm text-on-surface/90 leading-relaxed">
+                            <strong class="text-on-surface">Sign</strong> — You sign a unique one-time nonce to prove ownership. No gas fees.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center">
+                        <span class="font-headline font-bold text-xs text-primary">03</span>
+                    </div>
+                    <div>
+                        <p class="font-body text-sm text-on-surface/90 leading-relaxed">
+                            <strong class="text-on-surface">Verified</strong> — The server recovers your address from the signature and logs you in.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Footer note ── -->
+        <p class="font-body text-[11px] text-on-surface-variant/40 text-center leading-relaxed">
+            No passwords. No emails. Your wallet <em>is</em> your identity.<br>
+            Secured by Kinetic Ledger protocol.
+        </p>
+    </div>
+</section>
+{% endblock %}

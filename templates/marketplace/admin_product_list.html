@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quản lý sản phẩm — Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .filter-tab {
+        background: rgba(45, 52, 73, 0.6);
+        border: 1px solid rgba(69, 70, 77, 0.3);
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #c6c6cd;
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .filter-tab:hover {
+        border-color: rgba(78, 222, 163, 0.3);
+        color: #dae2fd;
+    }
+    .filter-tab.active {
+        background: rgba(78, 222, 163, 0.1);
+        border-color: rgba(78, 222, 163, 0.4);
+        color: #4edea3;
+    }
+    .product-row {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.2s;
+    }
+    .product-row:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+    }
+    .badge-available {
+        background: rgba(78, 222, 163, 0.12);
+        color: #4edea3;
+    }
+    .badge-pending {
+        background: rgba(255, 213, 79, 0.12);
+        color: #ffd54f;
+    }
+    .badge-hidden {
+        background: rgba(255, 180, 171, 0.12);
+        color: #ffb4ab;
+    }
+    .badge-sold {
+        background: rgba(144, 144, 151, 0.12);
+        color: #909097;
+    }
+    .btn-approve {
+        background: rgba(78, 222, 163, 0.12);
+        border: 1px solid rgba(78, 222, 163, 0.25);
+        color: #4edea3;
+        transition: all 0.2s;
+    }
+    .btn-approve:hover {
+        background: rgba(78, 222, 163, 0.25);
+    }
+    .btn-reject {
+        background: rgba(255, 180, 171, 0.08);
+        border: 1px solid rgba(255, 180, 171, 0.2);
+        color: #ffb4ab;
+        transition: all 0.2s;
+    }
+    .btn-reject:hover {
+        background: rgba(255, 180, 171, 0.18);
+    }
+    .btn-hide {
+        background: rgba(255, 213, 79, 0.08);
+        border: 1px solid rgba(255, 213, 79, 0.2);
+        color: #ffd54f;
+        transition: all 0.2s;
+    }
+    .btn-hide:hover {
+        background: rgba(255, 213, 79, 0.18);
+    }
+    .btn-edit {
+        background: rgba(190, 198, 224, 0.08);
+        border: 1px solid rgba(190, 198, 224, 0.2);
+        color: #bec6e0;
+        transition: all 0.2s;
+    }
+    .btn-edit:hover {
+        background: rgba(190, 198, 224, 0.18);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">inventory_2</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Quản lý sản phẩm</h1>
+                <p class="text-sm text-on-surface-variant font-body">Duyệt, sửa và ẩn/hiện sản phẩm</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'marketplace:sell_item' %}" class="flex items-center gap-2 bg-primary text-on-primary font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm hover:shadow-lg hover:shadow-primary/25">
+                <span class="material-symbols-outlined text-base">add</span>
+                Thêm SP
+            </a>
+            <a href="{% url 'transactions:admin_dashboard' %}" class="flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+                <span class="material-symbols-outlined text-base">arrow_back</span>
+                Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex flex-wrap items-center gap-3 mb-8">
+        <a href="?status=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+            Tất cả <span class="ml-1 opacity-60">({{ counts.all }})</span>
+        </a>
+        <a href="?status=PENDING_APPROVAL" class="filter-tab {% if status_filter == 'PENDING_APPROVAL' %}active{% endif %}" {% if counts.PENDING_APPROVAL > 0 %}style="border-color: rgba(255, 213, 79, 0.4); color: #ffd54f;"{% endif %}>
+            Chờ duyệt <span class="ml-1 opacity-60">({{ counts.PENDING_APPROVAL }})</span>
+        </a>
+        <a href="?status=AVAILABLE" class="filter-tab {% if status_filter == 'AVAILABLE' %}active{% endif %}">
+            Đang bán <span class="ml-1 opacity-60">({{ counts.AVAILABLE }})</span>
+        </a>
+        <a href="?status=HIDDEN" class="filter-tab {% if status_filter == 'HIDDEN' %}active{% endif %}">
+            Đã ẩn <span class="ml-1 opacity-60">({{ counts.HIDDEN }})</span>
+        </a>
+        <a href="?status=SOLD" class="filter-tab {% if status_filter == 'SOLD' %}active{% endif %}">
+            Đã bán <span class="ml-1 opacity-60">({{ counts.SOLD }})</span>
+        </a>
+    </div>
+
+    {% if counts.PENDING_APPROVAL > 0 and status_filter == 'all' %}
+    <div class="flex items-center gap-3 p-4 rounded-xl mb-6" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
+        <span class="material-symbols-outlined text-[#ffd54f]">priority_high</span>
+        <span class="text-sm font-headline font-bold text-[#ffd54f]">{{ counts.PENDING_APPROVAL }} sản phẩm đang chờ duyệt</span>
+        <a href="?status=PENDING_APPROVAL" class="ml-auto text-xs font-headline font-bold text-[#ffd54f] underline">Xem ngay →</a>
+    </div>
+    {% endif %}
+
+    <!-- Product List -->
+    {% if products %}
+    <div class="space-y-4">
+        {% for product in products %}
+        <div class="product-row p-4 flex items-center gap-4">
+            <!-- Image -->
+            <div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                {% if product.get_image_url %}
+                <img src="{{ product.get_image_url }}" alt="" class="w-full h-full object-cover" />
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-outline/30 text-xl">image</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <a href="{% url 'marketplace:product_detail' product.id %}" class="text-sm font-headline font-bold text-[#dae2fd] truncate hover:text-primary transition-colors">
+                        {{ product.name }}
+                    </a>
+                    {% if product.status == 'AVAILABLE' %}
+                    <span class="badge-available text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Đang bán</span>
+                    {% elif product.status == 'PENDING_APPROVAL' %}
+                    <span class="badge-pending text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Chờ duyệt</span>
+                    {% elif product.status == 'HIDDEN' %}
+                    <span class="badge-hidden text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Đã ẩn</span>
+                    {% elif product.status == 'SOLD' %}
+                    <span class="badge-sold text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Đã bán</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-on-surface-variant font-body">
+                    Người bán: {{ product.seller.username|truncatechars:20 }}
+                    {% if product.category %} · {{ product.category.name }}{% endif %}
+                    · {{ product.created_at|date:"d/m/Y" }}
+                </div>
+            </div>
+
+            <!-- Price -->
+            <div class="text-right flex-shrink-0">
+                <div class="text-sm font-headline font-extrabold text-primary">{{ product.price|floatformat:0 }} ₫</div>
+
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                {% if product.status == 'PENDING_APPROVAL' %}
+                <form method="POST" action="{% url 'marketplace:admin_product_approve' product.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-approve px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">check</span>
+                        Duyệt
+                    </button>
+                </form>
+                <form method="POST" action="{% url 'marketplace:admin_product_reject' product.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-reject px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                        Từ chối
+                    </button>
+                </form>
+                {% elif product.status == 'AVAILABLE' %}
+                <form method="POST" action="{% url 'marketplace:admin_product_toggle_hide' product.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-hide px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">visibility_off</span>
+                        Ẩn
+                    </button>
+                </form>
+                {% elif product.status == 'HIDDEN' %}
+                <form method="POST" action="{% url 'marketplace:admin_product_toggle_hide' product.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-approve px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">visibility</span>
+                        Hiện lại
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'marketplace:edit_product' product.id %}" class="btn-edit px-3 py-1.5 rounded-lg text-xs font-headline font-bold flex items-center gap-1 no-underline">
+                    <span class="material-symbols-outlined text-sm">edit</span>
+                    Sửa
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <span class="material-symbols-outlined text-5xl text-outline/30">inventory_2</span>
+        <p class="text-lg text-on-surface-variant font-headline font-bold mt-4">Không có sản phẩm nào</p>
+        <p class="text-sm text-outline font-body mt-2">Thử đổi bộ lọc hoặc thêm sản phẩm mới</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
