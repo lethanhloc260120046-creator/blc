@@ -47,6 +47,14 @@ async function loginWithMetaMask() {
     try {
         // ── Check MetaMask is installed ──────────────────────────────
         if (typeof window.ethereum === 'undefined') {
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                // Deep link to open this page in MetaMask mobile app
+                var currentUrl = window.location.origin + window.location.pathname + window.location.search;
+                var deepLink = 'https://metamask.app.link/dapp/' + currentUrl;
+                window.location.href = deepLink;
+                return;
+            }
             alert('MetaMask is not installed. Please install MetaMask to continue.');
             return;
         }

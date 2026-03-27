@@ -84,7 +84,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-6 lg:px-8 py-10 relative">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
 
     <!-- Ambient glow -->
     <div class="checkout-glow"></div>
@@ -111,9 +111,9 @@
 
     <!-- ═══════════════════════ Escrow Payment Flow ═══════════════════════ -->
     <div class="relative z-10 mb-10">
-        <div class="flex items-center justify-center gap-0">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0">
             <!-- Step 1: Create -->
-            <div class="flex flex-col items-center gap-2 w-40">
+            <div class="flex flex-col items-center gap-2 w-full sm:w-40 text-center">
                 <div class="w-12 h-12 rounded-full bg-primary/15 border-2 border-primary flex items-center justify-center">
                     <span class="material-symbols-outlined text-primary text-xl">add_circle</span>
                 </div>
@@ -121,9 +121,9 @@
                 <span class="text-[10px] text-on-surface-variant text-center leading-snug">Escrow contract is created on-chain</span>
             </div>
             <!-- Connector -->
-            <div class="step-connector flex-1 max-w-[80px] mt-[-28px]"></div>
+            <div class="step-connector hidden sm:block flex-1 max-w-[80px] mt-[-28px]"></div>
             <!-- Step 2: Pay -->
-            <div class="flex flex-col items-center gap-2 w-40">
+            <div class="flex flex-col items-center gap-2 w-full sm:w-40 text-center">
                 <div class="w-12 h-12 rounded-full bg-outline-variant/20 border-2 border-outline-variant/40 flex items-center justify-center">
                     <span class="material-symbols-outlined text-on-surface-variant text-xl">account_balance_wallet</span>
                 </div>
@@ -131,9 +131,9 @@
                 <span class="text-[10px] text-on-surface-variant text-center leading-snug">Funds locked in smart contract</span>
             </div>
             <!-- Connector -->
-            <div class="step-connector flex-1 max-w-[80px] mt-[-28px]"></div>
+            <div class="step-connector hidden sm:block flex-1 max-w-[80px] mt-[-28px]"></div>
             <!-- Step 3: Confirm -->
-            <div class="flex flex-col items-center gap-2 w-40">
+            <div class="flex flex-col items-center gap-2 w-full sm:w-40 text-center">
                 <div class="w-12 h-12 rounded-full bg-outline-variant/20 border-2 border-outline-variant/40 flex items-center justify-center">
                     <span class="material-symbols-outlined text-on-surface-variant text-xl">verified</span>
                 </div>

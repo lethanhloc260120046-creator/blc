@@ -89,9 +89,9 @@
 <body class="bg-surface-dim text-on-surface font-body selection:bg-primary/30 min-h-screen flex flex-col">
 
 <!-- TopNavBar -->
-<nav class="bg-[#0b1326] flex justify-between items-center w-full px-8 py-4 max-w-full mx-auto fixed top-0 z-50">
-    <div class="flex items-center gap-12">
-        <a href="{% url 'marketplace:product_list' %}" class="text-xl font-black text-[#dae2fd] tracking-tighter font-headline">TechEscrow P2P</a>
+<nav class="bg-[#0b1326] flex flex-wrap justify-between items-center w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 max-w-full mx-auto fixed top-0 z-50 gap-4">
+    <div class="flex items-center gap-4 sm:gap-8">
+        <a href="{% url 'marketplace:product_list' %}" class="text-lg sm:text-xl font-black text-[#dae2fd] tracking-tighter font-headline">TechEscrow P2P</a>
         <div class="hidden lg:flex items-center bg-surface-container-lowest rounded-xl px-4 py-2 w-96 group focus-within:ring-1 ring-primary/30 transition-all">
             <span class="material-symbols-outlined text-outline text-sm mr-2">search</span>
             <form method="get" action="{% url 'marketplace:product_list' %}" class="w-full">
@@ -99,7 +99,7 @@
             </form>
         </div>
     </div>
-    <div class="flex items-center gap-8">
+    <div class="flex items-center gap-4 sm:gap-8">
         <div class="hidden md:flex items-center gap-6 font-headline font-bold tracking-tight">
             <a class="text-[#dae2fd] hover:text-[#4edea3] transition-colors" href="{% url 'marketplace:product_list' %}">Home</a>
             {% if user.is_authenticated %}
@@ -137,7 +137,7 @@
 </nav>
 
 <!-- Main Content -->
-<div class="flex-grow pt-20">
+<div class="flex-grow pt-20 sm:pt-24">
     {% block content %}{% endblock %}
 </div>
 

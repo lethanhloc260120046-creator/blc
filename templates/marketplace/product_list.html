@@ -4,9 +4,9 @@
 
 {% block content %}
 <!-- Main Shell Layout -->
-<div class="flex">
+<div class="flex flex-col lg:flex-row">
     <!-- SideNavBar -->
-    <aside class="h-screen w-64 fixed left-0 top-0 pt-24 bg-[#0b1326] flex flex-col gap-2 z-40 overflow-y-auto">
+    <aside class="hidden lg:flex h-screen w-64 fixed left-0 top-0 pt-24 bg-[#0b1326] flex-col gap-2 z-40 overflow-y-auto">
         <div class="px-6 mb-6">
             <h3 class="text-[#dae2fd] font-headline font-bold text-lg leading-tight">Categories</h3>
             <p class="text-on-surface-variant text-xs font-medium">Filter by Hardware</p>
@@ -69,9 +69,50 @@
     </aside>
 
     <!-- Main Content Canvas -->
-    <main class="flex-1 ml-64 p-8 min-h-screen">
+    <main class="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 min-h-screen">
+        <!-- Mobile Filters -->
+        <div class="lg:hidden mb-6">
+            <details class="bg-surface-container-low rounded-2xl p-4">
+                <summary class="flex items-center justify-between cursor-pointer text-on-surface font-headline font-bold">
+                    Filters & Categories
+                    <span class="material-symbols-outlined text-sm">expand_more</span>
+                </summary>
+                <div class="mt-4 space-y-6">
+                    <div>
+                        <h3 class="text-on-surface-variant text-xs uppercase tracking-widest font-bold mb-3">Categories</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a class="{% if not request.GET.category %}bg-[#171f33] text-[#4edea3]{% else %}text-[#dae2fd]/70 hover:text-[#dae2fd] hover:bg-[#171f33]/50{% endif %} py-2 px-3 rounded-xl text-xs font-body" href="{% url 'marketplace:product_list' %}">
+                                All Products
+                            </a>
+                            {% for cat in categories %}
+                            <a class="{% if request.GET.category == cat.slug %}bg-[#171f33] text-[#4edea3]{% else %}text-[#dae2fd]/70 hover:text-[#dae2fd] hover:bg-[#171f33]/50{% endif %} py-2 px-3 rounded-xl text-xs font-body" href="?category={{ cat.slug }}">
+                                {{ cat.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-on-surface-variant text-xs uppercase tracking-widest font-bold mb-3">Condition</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="?condition=new{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="py-2 px-3 rounded-xl text-xs font-body {% if request.GET.condition == 'new' %}bg-primary text-on-primary{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">
+                                New / Open Box
+                            </a>
+                            <a href="?condition=used{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="py-2 px-3 rounded-xl text-xs font-body {% if request.GET.condition == 'used' %}bg-primary text-on-primary{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">
+                                Used / Like New
+                            </a>
+                            <a href="?condition=refurbished{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="py-2 px-3 rounded-xl text-xs font-body {% if request.GET.condition == 'refurbished' %}bg-primary text-on-primary{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">
+                                Refurbished
+                            </a>
+                            <a href="{% url 'marketplace:product_list' %}" class="py-2 px-3 rounded-xl text-xs font-body bg-surface-container-highest text-on-surface-variant">
+                                Clear Filters
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
         <!-- Hero / Featured Section -->
-        <header class="mb-12 relative overflow-hidden rounded-[2rem] bg-surface-container-low p-12 min-h-[320px] flex flex-col justify-center">
+        <header class="mb-8 sm:mb-12 relative overflow-hidden rounded-[2rem] bg-surface-container-low p-6 sm:p-8 lg:p-12 min-h-[260px] sm:min-h-[320px] flex flex-col justify-center">
             <div class="absolute top-0 right-0 w-2/3 h-full opacity-20 pointer-events-none">
                 <img alt="PC Setup" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMPQB5fMyXX1zOZjUqfi9xUtAI-R3KXAuJeYFanqyiJ8Dzzo8cRpYLgiwPpgVIPr5KsbJ-6UGSYHPux4vjDS8_LRIWODbaEqAhfqSQWnOSDLogqXDCq9-SAXUw4inrMlPQCB0f07TImStKFVNN5i18CVGzsGfSx1lrt8MIm8bqBeoJORVvTMF_YmCZszS4AQehTl9XmZ_ttwcaHIVxeh4-Y5DW5NtBbnSM9NowgpJlj1Xot_fmgp1WHR9gEWDAsv2BNJXNur-tQA59"/>
             </div>
@@ -80,17 +121,17 @@
                     <span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
                     Live Nodes Connected
                 </div>
-                <h1 class="font-headline text-5xl font-extrabold tracking-tight text-on-surface mb-4 leading-[1.1]">
+                <h1 class="font-headline text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-on-surface mb-4 leading-[1.1]">
                     Trade Hardware with <span class="text-primary">Immutable Trust.</span>
                 </h1>
-                <p class="text-on-surface-variant text-lg font-body leading-relaxed mb-8">
+                <p class="text-on-surface-variant text-base sm:text-lg font-body leading-relaxed mb-6 sm:mb-8">
                     The world's first P2P marketplace for high-end electronics secured by smart contract escrow.
                 </p>
-                <div class="flex gap-4">
-                    <a href="#product-grid" class="bg-primary text-on-primary px-8 py-3.5 rounded-xl font-headline font-extrabold hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all">
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <a href="#product-grid" class="bg-primary text-on-primary px-6 sm:px-8 py-3.5 rounded-xl font-headline font-extrabold hover:shadow-[0_0_20px_rgba(78,222,163,0.3)] transition-all text-center">
                         Browse Collection
                     </a>
-                    <button class="bg-surface-container-highest text-on-surface px-8 py-3.5 rounded-xl font-headline font-bold">
+                    <button class="bg-surface-container-highest text-on-surface px-6 sm:px-8 py-3.5 rounded-xl font-headline font-bold">
                         View Whitepaper
                     </button>
                 </div>
