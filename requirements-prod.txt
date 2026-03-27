@@ -1,0 +1,7 @@
+Django==5.2.12
+python-dotenv==1.0.1
+cloudinary==1.44.1
+django-cloudinary-storage==0.3.0
+psycopg2-binary==2.9.9
+eth-account==0.13.7
+eth-utils==5.3.1
