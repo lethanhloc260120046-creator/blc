@@ -61,6 +61,28 @@
         border: 1px solid rgba(78, 222, 163, 0.06);
     }
 
+    .shipping-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        transition: border-color 0.25s;
+    }
+    .shipping-card:hover {
+        border-color: rgba(78, 222, 163, 0.2);
+    }
+    .shipping-card input,
+    .shipping-card select {
+        background: rgba(6, 14, 32, 0.6) !important;
+        border-color: rgba(69, 70, 77, 0.3) !important;
+    }
+    .shipping-card input:focus,
+    .shipping-card select:focus {
+        border-color: rgba(78, 222, 163, 0.4) !important;
+        box-shadow: 0 0 0 1px rgba(78, 222, 163, 0.15);
+    }
+    .field-error {
+        border-color: rgba(255, 180, 171, 0.5) !important;
+    }
+
     .pulse-dot {
         animation: pulse-green 2s ease-in-out infinite;
     }
@@ -187,6 +209,73 @@
                         <p class="text-xs text-on-surface/60 font-body leading-relaxed line-clamp-2 mt-1">{{ product.description|truncatechars:120 }}</p>
                         {% endif %}
                     </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════ Shipping Info Form ═══════════════ -->
+            <div class="shipping-card rounded-2xl p-6 space-y-5">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+                    <h3 class="font-headline font-bold text-[#dae2fd] text-base">Thông tin giao hàng</h3>
+                </div>
+
+                <!-- Receiver Name -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Họ tên người nhận *</label>
+                    <input type="text" id="receiver-name"
+                        class="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body"
+                        placeholder="Nguyễn Văn A">
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Số điện thoại *</label>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <select id="country-code" class="rounded-xl px-3 py-3 text-sm text-on-surface font-body w-24 flex-shrink-0">
+                            <option value="+84">🇻🇳 +84</option>
+                        </select>
+                        <input type="tel" id="receiver-phone"
+                            class="w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body"
+                            placeholder="0912 345 678">
+                    </div>
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
+                </div>
+
+                <!-- Province / City -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Tỉnh / Thành phố *</label>
+                    <select id="shipping-city" class="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body">
+                        <option value="">Chọn Tỉnh/Thành phố</option>
+                    </select>
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
+                </div>
+
+                <!-- District -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Quận / Huyện *</label>
+                    <select id="shipping-district" disabled class="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body">
+                        <option value="">Chọn Quận/Huyện</option>
+                    </select>
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
+                </div>
+
+                <!-- Ward -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Phường / Xã *</label>
+                    <select id="shipping-ward" disabled class="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body">
+                        <option value="">Chọn Phường/Xã</option>
+                    </select>
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
+                </div>
+
+                <!-- Street Address -->
+                <div>
+                    <label class="text-[10px] uppercase tracking-widest text-outline font-label">Địa chỉ cụ thể *</label>
+                    <input type="text" id="shipping-address"
+                        class="mt-1.5 w-full rounded-xl px-4 py-3 text-sm text-on-surface font-body"
+                        placeholder="Số nhà, tên đường, tòa nhà...">
+                    <p class="error-msg text-xs mt-1 hidden" style="color: #ffb4ab;"></p>
                 </div>
             </div>
 
@@ -351,7 +440,7 @@
                 <!-- Initiate Escrow Button -->
                 <button
                     id="checkout-btn"
-                    onclick="initiateCheckout({{ product.id }}, '{{ seller_wallet }}', '{{ product.price }}')"
+                    onclick="startCheckout()"
                     class="btn-escrow w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-[#003824] font-headline font-extrabold tracking-tight text-sm"
                 >
                     <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
@@ -395,7 +484,7 @@
 
 {% block extra_js %}
 <script>
-    // ── Truncate wallet addresses: first 6 … last 4 ──
+    // ── Truncate wallet addresses ──
     (function() {
         document.querySelectorAll('[title]').forEach(function(el) {
             var full = el.getAttribute('title');
@@ -404,5 +493,152 @@
             }
         });
     })();
+
+    // ═══════════════ Address Cascading Dropdowns ═══════════════
+
+    async function loadProvinces() {
+        var citySelect = document.getElementById('shipping-city');
+        try {
+            var response = await fetch('/api/provinces/');
+            var provinces = await response.json();
+            provinces.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.code;
+                opt.textContent = p.name;
+                opt.dataset.name = p.name;
+                citySelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Error loading provinces:', e);
+        }
+    }
+
+    document.getElementById('shipping-city').addEventListener('change', async function() {
+        var districtSelect = document.getElementById('shipping-district');
+        var wardSelect = document.getElementById('shipping-ward');
+        districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
+        districtSelect.disabled = true;
+        wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+        wardSelect.disabled = true;
+        if (!this.value) return;
+        try {
+            districtSelect.innerHTML = '<option value="">Đang tải...</option>';
+            var response = await fetch('/api/districts/' + this.value + '/');
+            var data = await response.json();
+            districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
+            districtSelect.disabled = false;
+            (data.districts || []).forEach(function(d) {
+                var opt = document.createElement('option');
+                opt.value = d.code;
+                opt.textContent = d.name;
+                opt.dataset.name = d.name;
+                districtSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Error loading districts:', e);
+            districtSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        }
+    });
+
+    document.getElementById('shipping-district').addEventListener('change', async function() {
+        var wardSelect = document.getElementById('shipping-ward');
+        wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+        wardSelect.disabled = true;
+        if (!this.value) return;
+        try {
+            wardSelect.innerHTML = '<option value="">Đang tải...</option>';
+            var response = await fetch('/api/wards/' + this.value + '/');
+            var data = await response.json();
+            wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+            wardSelect.disabled = false;
+            (data.wards || []).forEach(function(w) {
+                var opt = document.createElement('option');
+                opt.value = w.code;
+                opt.textContent = w.name;
+                opt.dataset.name = w.name;
+                wardSelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Error loading wards:', e);
+            wardSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        }
+    });
+
+    // ═══════════════ Validation + Collect Shipping Data ═══════════════
+
+    function validateShippingForm() {
+        var valid = true;
+        var fields = [
+            { id: 'receiver-name', label: 'họ tên người nhận' },
+            { id: 'receiver-phone', label: 'số điện thoại' },
+            { id: 'shipping-city', label: 'tỉnh/thành phố' },
+            { id: 'shipping-district', label: 'quận/huyện' },
+            { id: 'shipping-ward', label: 'phường/xã' },
+            { id: 'shipping-address', label: 'địa chỉ cụ thể' },
+        ];
+
+        fields.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            var parent = el.closest('div');
+            var errorEl = parent ? parent.querySelector('.error-msg') : null;
+            if (!el.value || !el.value.trim()) {
+                valid = false;
+                el.classList.add('field-error');
+                if (errorEl) {
+                    errorEl.textContent = 'Vui lòng nhập ' + f.label;
+                    errorEl.classList.remove('hidden');
+                }
+            } else {
+                el.classList.remove('field-error');
+                if (errorEl) errorEl.classList.add('hidden');
+            }
+        });
+
+        // Phone validation
+        var phone = document.getElementById('receiver-phone').value.trim().replace(/\s/g, '');
+        if (phone && !/^0\d{9}$/.test(phone)) {
+            valid = false;
+            var phoneEl = document.getElementById('receiver-phone');
+            phoneEl.classList.add('field-error');
+            var phoneParent = phoneEl.closest('div').parentElement;
+            var phoneError = phoneParent ? phoneParent.querySelector('.error-msg') : null;
+            if (phoneError) {
+                phoneError.textContent = 'Số điện thoại phải là 10 chữ số, bắt đầu bằng 0';
+                phoneError.classList.remove('hidden');
+            }
+        }
+
+        if (!valid) {
+            var firstErr = document.querySelector('.field-error');
+            if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return valid;
+    }
+
+    function collectShippingData() {
+        var citySelect = document.getElementById('shipping-city');
+        var districtSelect = document.getElementById('shipping-district');
+        var wardSelect = document.getElementById('shipping-ward');
+        var cityOpt = citySelect.options[citySelect.selectedIndex];
+        var districtOpt = districtSelect.options[districtSelect.selectedIndex];
+        var wardOpt = wardSelect.options[wardSelect.selectedIndex];
+        return {
+            receiver_name: document.getElementById('receiver-name').value.trim(),
+            receiver_phone: document.getElementById('receiver-phone').value.trim(),
+            shipping_city: cityOpt && cityOpt.dataset.name ? cityOpt.dataset.name : (cityOpt ? cityOpt.textContent : ''),
+            shipping_district: districtOpt && districtOpt.dataset.name ? districtOpt.dataset.name : (districtOpt ? districtOpt.textContent : ''),
+            shipping_ward: wardOpt && wardOpt.dataset.name ? wardOpt.dataset.name : (wardOpt ? wardOpt.textContent : ''),
+            shipping_address: document.getElementById('shipping-address').value.trim(),
+        };
+    }
+
+    function startCheckout() {
+        if (!validateShippingForm()) return;
+        var shippingData = collectShippingData();
+        initiateCheckout({{ product.id }}, '{{ seller_wallet }}', '{{ product.price }}', shippingData);
+    }
+
+    // Load provinces on page ready
+    loadProvinces();
 </script>
 {% endblock %}

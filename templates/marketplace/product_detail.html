@@ -179,6 +179,17 @@
             </div>
 
             <!-- ═══════════════ Glass-Panel Checkout Card ═══════════════ -->
+            {% if is_owner %}
+            <div class="checkout-card rounded-2xl p-6 space-y-4 mt-auto text-center">
+                <span class="material-symbols-outlined text-3xl text-outline/40">storefront</span>
+                <p class="text-sm text-on-surface-variant font-body">Đây là sản phẩm của bạn.</p>
+                <a href="{% url 'marketplace:edit_product' product.id %}"
+                   class="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-primary/25 text-primary font-headline font-bold tracking-tight text-sm bg-transparent hover:bg-primary/5 transition-colors no-underline">
+                    <span class="material-symbols-outlined text-lg">edit</span>
+                    Chỉnh sửa sản phẩm
+                </a>
+            </div>
+            {% else %}
             <div class="checkout-card rounded-2xl p-6 space-y-5 mt-auto">
                 <div class="flex items-center justify-between">
                     <div class="space-y-0.5">
@@ -228,6 +239,7 @@
                     </span>
                 </div>
             </div>
+            {% endif %}
 
             <!-- ═══════════════ Seller Info Card ═══════════════ -->
             <div class="bento-box flex items-center gap-4">

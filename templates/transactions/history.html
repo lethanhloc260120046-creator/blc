@@ -200,6 +200,9 @@
         color: #4edea3;
         border-bottom: 2px solid #4edea3;
     }
+    .btn-detail:hover {
+        box-shadow: 0 0 12px rgba(78, 222, 163, 0.15);
+    }
 </style>
 {% endblock %}
 
@@ -302,8 +305,8 @@
              data-tx-hash="{{ tx.smart_contract_tx_hash|default:'' }}">
             <div class="flex flex-col lg:flex-row lg:items-center gap-5">
 
-                <!-- Product Image -->
-                <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                <!-- Product Image (clickable) -->
+                <a href="{% url 'transactions:transaction_detail' tx.id %}" class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0 block hover:ring-2 hover:ring-primary/40 transition-all">
                     {% if tx.product.get_image_url %}
                     <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
                     {% else %}
@@ -311,12 +314,12 @@
                         <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
                     </div>
                     {% endif %}
-                </div>
+                </a>
 
                 <!-- Info -->
                 <div class="flex-1 min-w-0 space-y-1.5">
                     <div class="flex items-center gap-3 flex-wrap">
-                        <h3 class="text-base font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</h3>
+                        <a href="{% url 'transactions:transaction_detail' tx.id %}" class="text-base font-headline font-bold text-[#dae2fd] truncate hover:text-primary transition-colors">{{ tx.product.name }}</a>
                         <!-- Status Badge -->
                         {% if tx.status == 'Created' %}
                         <span class="badge-created text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Created</span>
@@ -337,14 +340,20 @@
                         {% endif %}
                     </div>
                     <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
-                        <span class="flex items-center gap-1">
+                        <a href="{% url 'transactions:transaction_detail' tx.id %}" class="flex items-center gap-1 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[13px]">tag</span>
                             Order #{{ tx.id }}
-                        </span>
+                        </a>
                         <span class="flex items-center gap-1">
                             <span class="material-symbols-outlined text-[13px]">storefront</span>
                             Seller: <span class="font-mono text-[#dae2fd]/60 wallet-truncate" title="{{ tx.seller.userprofile.wallet_address|default:tx.seller.username }}">{{ tx.seller.userprofile.wallet_address|default:tx.seller.username }}</span>
                         </span>
+                        {% if tx.is_locked %}
+                        <span class="flex items-center gap-1 text-error">
+                            <span class="material-symbols-outlined text-[13px]">lock</span>
+                            Đã khóa
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="text-lg font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
                     <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></span>
@@ -352,48 +361,53 @@
 
                 <!-- Escrow Stepper -->
                 <div class="flex items-start gap-0 flex-shrink-0">
-                    <!-- Created -->
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
-                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}
+                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}
                             <span class="material-symbols-outlined text-xs">check</span>
-                            {% else %}
-                            1
-                            {% endif %}
+                            {% else %}1{% endif %}
                         </div>
                         <span class="text-[9px] font-label text-on-surface-variant">Created</span>
                     </div>
-                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
-                    <!-- Funded -->
+                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}"></div>
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Disputed' %}active{% elif tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
-                            {% if tx.status == 'Completed' %}
+                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% elif tx.status == 'Disputed' %}active{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Completed' or tx.status == 'Cancelled' %}
                             <span class="material-symbols-outlined text-xs">check</span>
                             {% elif tx.status == 'Disputed' %}
                             <span class="material-symbols-outlined text-xs" style="color: #ffd54f;">gavel</span>
-                            {% else %}
-                            2
-                            {% endif %}
+                            {% else %}2{% endif %}
                         </div>
                         <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Disputed' %}Disputed{% else %}Funded{% endif %}</span>
                     </div>
-                    <div class="stepper-connector {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
-                    <!-- Completed -->
+                    <div class="stepper-connector {% if tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}"></div>
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% elif tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
                             {% if tx.status == 'Completed' %}
                             <span class="material-symbols-outlined text-xs">check</span>
-                            {% else %}
-                            3
-                            {% endif %}
+                            {% elif tx.status == 'Cancelled' %}
+                            <span class="material-symbols-outlined text-xs" style="color: #ffb4ab;">close</span>
+                            {% else %}3{% endif %}
                         </div>
-                        <span class="text-[9px] font-label text-on-surface-variant">Completed</span>
+                        <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Cancelled' %}Cancelled{% else %}Completed{% endif %}</span>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    {% if tx.status == 'Created' %}
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                    <!-- Prominent "Xem chi tiết" button -->
+                    <a href="{% url 'transactions:transaction_detail' tx.id %}" class="btn-detail px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright border border-outline-variant/20 hover:border-primary/30 text-[#dae2fd] font-headline font-bold text-xs flex items-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-sm">visibility</span>
+                        Xem chi tiết
+                    </a>
+                    <!-- Escrow action buttons -->
+                    <div class="flex items-center gap-2">
+                    {% if tx.is_locked %}
+                    <span class="text-xs text-error font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">lock</span>
+                        Đã khóa
+                    </span>
+                    {% elif tx.status == 'Created' %}
                     <button onclick="payTransaction({{ tx.id }})" class="btn-pay px-4 py-2.5 rounded-xl text-[#003824] font-headline font-bold text-xs flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
                         Pay (Fund Contract)
@@ -423,6 +437,7 @@
                         Refunded
                     </span>
                     {% endif %}
+                    </div>
                 </div>
 
             </div>
@@ -453,8 +468,8 @@
              data-tx-hash="{{ tx.smart_contract_tx_hash|default:'' }}">
             <div class="flex flex-col lg:flex-row lg:items-center gap-5">
 
-                <!-- Product Image -->
-                <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                <!-- Product Image (clickable) -->
+                <a href="{% url 'transactions:transaction_detail' tx.id %}" class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0 block hover:ring-2 hover:ring-primary/40 transition-all">
                     {% if tx.product.get_image_url %}
                     <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
                     {% else %}
@@ -462,12 +477,12 @@
                         <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
                     </div>
                     {% endif %}
-                </div>
+                </a>
 
                 <!-- Info -->
                 <div class="flex-1 min-w-0 space-y-1.5">
                     <div class="flex items-center gap-3 flex-wrap">
-                        <h3 class="text-base font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</h3>
+                        <a href="{% url 'transactions:transaction_detail' tx.id %}" class="text-base font-headline font-bold text-[#dae2fd] truncate hover:text-primary transition-colors">{{ tx.product.name }}</a>
                         <!-- Status Badge -->
                         {% if tx.status == 'Created' %}
                         <span class="badge-created text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Created</span>
@@ -488,14 +503,20 @@
                         {% endif %}
                     </div>
                     <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
-                        <span class="flex items-center gap-1">
+                        <a href="{% url 'transactions:transaction_detail' tx.id %}" class="flex items-center gap-1 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[13px]">tag</span>
                             Order #{{ tx.id }}
-                        </span>
+                        </a>
                         <span class="flex items-center gap-1">
                             <span class="material-symbols-outlined text-[13px]">person</span>
                             Buyer: <span class="font-mono text-[#dae2fd]/60 wallet-truncate" title="{{ tx.buyer.userprofile.wallet_address|default:tx.buyer.username }}">{{ tx.buyer.userprofile.wallet_address|default:tx.buyer.username }}</span>
                         </span>
+                        {% if tx.is_locked %}
+                        <span class="flex items-center gap-1 text-error">
+                            <span class="material-symbols-outlined text-[13px]">lock</span>
+                            Đã khóa
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="text-lg font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
                     <span class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></span>
@@ -505,8 +526,8 @@
                 <div class="flex items-start gap-0 flex-shrink-0">
                     <!-- Created -->
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
-                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}
+                        <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}
                             <span class="material-symbols-outlined text-xs">check</span>
                             {% else %}
                             1
@@ -514,11 +535,11 @@
                         </div>
                         <span class="text-[9px] font-label text-on-surface-variant">Created</span>
                     </div>
-                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <div class="stepper-connector {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}"></div>
                     <!-- Funded -->
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Disputed' %}active{% elif tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
-                            {% if tx.status == 'Completed' %}
+                        <div class="stepper-dot {% if tx.status == 'Funded' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% elif tx.status == 'Disputed' %}active{% else %}pending{% endif %}">
+                            {% if tx.status == 'Funded' or tx.status == 'Completed' or tx.status == 'Cancelled' %}
                             <span class="material-symbols-outlined text-xs">check</span>
                             {% elif tx.status == 'Disputed' %}
                             <span class="material-symbols-outlined text-xs" style="color: #ffd54f;">gavel</span>
@@ -528,23 +549,37 @@
                         </div>
                         <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Disputed' %}Disputed{% else %}Funded{% endif %}</span>
                     </div>
-                    <div class="stepper-connector {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}"></div>
+                    <div class="stepper-connector {% if tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}"></div>
                     <!-- Completed -->
                     <div class="stepper-step">
-                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% else %}pending{% endif %}">
+                        <div class="stepper-dot {% if tx.status == 'Completed' %}completed{% elif tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
                             {% if tx.status == 'Completed' %}
                             <span class="material-symbols-outlined text-xs">check</span>
+                            {% elif tx.status == 'Cancelled' %}
+                            <span class="material-symbols-outlined text-xs" style="color: #ffb4ab;">close</span>
                             {% else %}
                             3
                             {% endif %}
                         </div>
-                        <span class="text-[9px] font-label text-on-surface-variant">Completed</span>
+                        <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Cancelled' %}Cancelled{% else %}Completed{% endif %}</span>
                     </div>
                 </div>
 
                 <!-- Action Buttons / Status -->
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    {% if tx.status == 'Funded' %}
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                    <!-- Prominent "Xem chi tiết" button -->
+                    <a href="{% url 'transactions:transaction_detail' tx.id %}" class="btn-detail px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright border border-outline-variant/20 hover:border-primary/30 text-[#dae2fd] font-headline font-bold text-xs flex items-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-sm">visibility</span>
+                        Xem chi tiết
+                    </a>
+                    <!-- Status info -->
+                    <div class="flex items-center gap-2">
+                    {% if tx.is_locked %}
+                    <span class="text-xs text-error font-body flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">lock</span>
+                        Đã khóa
+                    </span>
+                    {% elif tx.status == 'Funded' %}
                     <span class="text-xs text-on-surface-variant font-body flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm text-primary pulse-dot">hourglass_top</span>
                         Awaiting buyer confirmation
@@ -570,6 +605,7 @@
                         Cancelled
                     </span>
                     {% endif %}
+                    </div>
                 </div>
 
             </div>

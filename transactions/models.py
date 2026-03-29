@@ -19,6 +19,13 @@ class Transaction(models.Model):
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Created')
     smart_contract_tx_hash = models.CharField(max_length=66, unique=True, null=True, blank=True)
+    receiver_name = models.CharField(max_length=100, blank=True, default='')
+    receiver_phone = models.CharField(max_length=20, blank=True, default='')
+    shipping_city = models.CharField(max_length=100, blank=True, default='')
+    shipping_district = models.CharField(max_length=100, blank=True, default='')
+    shipping_ward = models.CharField(max_length=100, blank=True, default='')
+    shipping_address = models.CharField(max_length=300, blank=True, default='')
+    is_locked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

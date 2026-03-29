@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order #{{ tx.id }} — TechEscrow P2P{% endblock %}
+
+{% block extra_head %}
+<style>
+    .detail-card {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(69, 70, 77, 0.15);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .badge-created { background: rgba(185,199,224,0.1); color: #b9c7e0; border: 1px solid rgba(185,199,224,0.2); }
+    .badge-funded { background: rgba(78,222,163,0.1); color: #4edea3; border: 1px solid rgba(78,222,163,0.2); }
+    .badge-completed { background: rgba(0,147,101,0.15); color: #6ffbbe; border: 1px solid rgba(111,251,190,0.2); }
+    .badge-cancelled { background: rgba(255,180,171,0.1); color: #ffb4ab; border: 1px solid rgba(255,180,171,0.2); }
+    .badge-disputed { background: rgba(255,213,79,0.1); color: #ffd54f; border: 1px solid rgba(255,213,79,0.2); }
+    .lock-banner { background: rgba(255,180,171,0.08); border: 1px solid rgba(255,180,171,0.2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs font-body text-outline mb-8">
+        <a href="{% url 'transactions:history' %}" class="hover:text-primary transition-colors">My Orders</a>
+        <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        <span class="text-on-surface/70">Order #{{ tx.id }}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-[#003824] text-2xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Order #{{ tx.id }}</h1>
+                <p class="text-sm text-on-surface-variant font-body">{{ tx.created_at|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+        {% if tx.status == 'Created' %}
+        <span class="badge-created text-xs font-bold font-headline px-4 py-1.5 rounded-full">Created</span>
+        {% elif tx.status == 'Funded' %}
+        <span class="badge-funded text-xs font-bold font-headline px-4 py-1.5 rounded-full">Funded</span>
+        {% elif tx.status == 'Disputed' %}
+        <span class="badge-disputed text-xs font-bold font-headline px-4 py-1.5 rounded-full">Disputed</span>
+        {% elif tx.status == 'Completed' %}
+        <span class="badge-completed text-xs font-bold font-headline px-4 py-1.5 rounded-full">Completed</span>
+        {% elif tx.status == 'Cancelled' %}
+        <span class="badge-cancelled text-xs font-bold font-headline px-4 py-1.5 rounded-full">Cancelled</span>
+        {% endif %}
+    </div>
+
+    {% if tx.is_locked %}
+    <div class="lock-banner rounded-xl p-4 mb-6 flex items-center gap-3">
+        <span class="material-symbols-outlined text-error">lock</span>
+        <span class="text-sm font-headline font-bold text-error">Đơn hàng đã bị Admin khóa — không thể thực hiện thao tác.</span>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Product Info -->
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-primary">shopping_bag</span>
+                    Sản phẩm
+                </h2>
+                <div class="flex items-center gap-4">
+                    <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                        {% if tx.product.get_image_url %}
+                        <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1">
+                        <a href="{% url 'marketplace:product_detail' tx.product.id %}" class="text-base font-headline font-bold text-[#dae2fd] hover:text-primary transition-colors">{{ tx.product.name }}</a>
+                        <div class="text-xs text-on-surface-variant font-body mt-1">{{ tx.product.condition|default:"N/A" }} {% if tx.product.category %}· {{ tx.product.category.name }}{% endif %}</div>
+                        <div class="text-xl font-headline font-extrabold text-primary mt-2 vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                        <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buyer & Seller Info -->
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-primary">group</span>
+                    Thông tin giao dịch
+                </h2>
+                <div class="space-y-0">
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Người mua</span>
+                        <span class="text-xs font-mono text-[#dae2fd]/80" title="{{ buyer_wallet }}">{{ buyer_wallet|truncatechars:14 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Người bán</span>
+                        <span class="text-xs font-mono text-[#dae2fd]/80" title="{{ seller_wallet }}">{{ seller_wallet|truncatechars:14 }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Ngày tạo</span>
+                        <span class="text-xs text-[#dae2fd]/80 font-body">{{ tx.created_at|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Cập nhật</span>
+                        <span class="text-xs text-[#dae2fd]/80 font-body">{{ tx.updated_at|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {% if tx.smart_contract_tx_hash %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">TX Hash</span>
+                        <a href="{{ etherscan_base_url }}/tx/{{ tx.smart_contract_tx_hash }}" target="_blank" rel="noopener" class="text-xs font-mono text-primary hover:underline" title="{{ tx.smart_contract_tx_hash }}">{{ tx.smart_contract_tx_hash|truncatechars:20 }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Shipping Info (visible to seller and admin, and buyer for their own order) -->
+            {% if tx.receiver_name %}
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base text-primary">local_shipping</span>
+                    Thông tin giao hàng
+                </h2>
+                <div class="space-y-0">
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Họ tên</span>
+                        <span class="text-xs text-[#dae2fd] font-body font-bold">{{ tx.receiver_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Số điện thoại</span>
+                        <span class="text-xs text-[#dae2fd] font-body font-bold">{{ tx.receiver_phone }}</span>
+                    </div>
+                    {% if tx.shipping_city %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Tỉnh / Thành phố</span>
+                        <span class="text-xs text-[#dae2fd] font-body font-bold">{{ tx.shipping_city }}</span>
+                    </div>
+                    {% endif %}
+                    {% if tx.shipping_district %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Quận / Huyện</span>
+                        <span class="text-xs text-[#dae2fd] font-body font-bold">{{ tx.shipping_district }}</span>
+                    </div>
+                    {% endif %}
+                    {% if tx.shipping_ward %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Phường / Xã</span>
+                        <span class="text-xs text-[#dae2fd] font-body font-bold">{{ tx.shipping_ward }}</span>
+                    </div>
+                    {% endif %}
+                    {% if tx.shipping_address %}
+                    <div class="info-row">
+                        <span class="text-xs text-on-surface-variant font-label">Địa chỉ cụ thể</span>
+                        <span class="text-xs text-[#dae2fd] font-body text-right max-w-[300px]">{{ tx.shipping_address }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Refund Requests -->
+            {% if refund_requests %}
+            <div class="detail-card p-6">
+                <h2 class="text-sm font-headline font-bold text-[#dae2fd] mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base" style="color: #ffd54f;">gavel</span>
+                    Yêu cầu trả hàng ({{ refund_requests|length }})
+                </h2>
+                <div class="space-y-4">
+                    {% for refund in refund_requests %}
+                    <div class="p-4 rounded-xl" style="background: rgba(45, 52, 73, 0.4); border: 1px solid rgba(69, 70, 77, 0.2);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-headline font-bold text-[#dae2fd]">Refund #{{ refund.id }} — {{ refund.get_reason_display }}</span>
+                            {% if refund.status == 'Pending' %}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(255,213,79,0.1); color: #ffd54f;">Chờ duyệt</span>
+                            {% elif refund.status == 'Approved' %}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(78,222,163,0.1); color: #4edea3;">Đã duyệt</span>
+                            {% elif refund.status == 'Rejected' %}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(255,180,171,0.1); color: #ffb4ab;">Từ chối</span>
+                            {% endif %}
+                        </div>
+                        {% if refund.reason_detail %}
+                        <p class="text-xs text-on-surface-variant font-body mb-2">{{ refund.reason_detail }}</p>
+                        {% endif %}
+                        <div class="text-[10px] text-on-surface-variant/60">{{ refund.created_at|date:"d/m/Y H:i" }}</div>
+                        {% if refund.admin_note %}
+                        <div class="mt-2 p-2 rounded-lg" style="background: rgba(78, 222, 163, 0.04);">
+                            <span class="text-[10px] text-outline font-label">Ghi chú Admin:</span>
+                            <p class="text-xs text-on-surface-variant font-body">{{ refund.admin_note }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+            <!-- Quick Status -->
+            <div class="detail-card p-6 text-center">
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-3">Trạng thái đơn hàng</div>
+                {% if tx.status == 'Created' %}
+                <div class="inline-flex items-center gap-2 text-lg font-headline font-extrabold" style="color: #b9c7e0;">Created</div>
+                <p class="text-xs text-on-surface-variant font-body mt-2">Đang chờ thanh toán</p>
+                {% elif tx.status == 'Funded' %}
+                <div class="inline-flex items-center gap-2 text-lg font-headline font-extrabold text-primary">Funded</div>
+                <p class="text-xs text-on-surface-variant font-body mt-2">Tiền đang giữ trong Smart Contract</p>
+                {% elif tx.status == 'Disputed' %}
+                <div class="inline-flex items-center gap-2 text-lg font-headline font-extrabold" style="color: #ffd54f;">Disputed</div>
+                <p class="text-xs text-on-surface-variant font-body mt-2">Đang chờ Admin giải quyết</p>
+                {% elif tx.status == 'Completed' %}
+                <div class="inline-flex items-center gap-2 text-lg font-headline font-extrabold" style="color: #6ffbbe;">Completed</div>
+                <p class="text-xs text-on-surface-variant font-body mt-2">Tiền đã chuyển cho người bán</p>
+                {% elif tx.status == 'Cancelled' %}
+                <div class="inline-flex items-center gap-2 text-lg font-headline font-extrabold text-error">Cancelled</div>
+                <p class="text-xs text-on-surface-variant font-body mt-2">Tiền đã hoàn lại cho người mua</p>
+                {% endif %}
+            </div>
+
+            <!-- Amount -->
+            <div class="detail-card p-6">
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-2">Giá trị đơn hàng</div>
+                <div class="text-2xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                <div class="text-xs text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ tx.amount }}"></div>
+            </div>
+
+            <!-- Counterparty Info -->
+            <div class="detail-card p-6">
+                {% if is_buyer %}
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-3">Người bán</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-[#003824] text-lg" style="font-variation-settings: 'FILL' 1;">storefront</span>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ tx.seller.username|truncatechars:20 }}</div>
+                        <div class="text-[10px] font-mono text-on-surface-variant truncate" title="{{ seller_wallet }}">{{ seller_wallet|truncatechars:16 }}</div>
+                    </div>
+                </div>
+                {% elif is_seller %}
+                <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-3">Người mua</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-[#003824] text-lg" style="font-variation-settings: 'FILL' 1;">person</span>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ tx.buyer.username|truncatechars:20 }}</div>
+                        <div class="text-[10px] font-mono text-on-surface-variant truncate" title="{{ buyer_wallet }}">{{ buyer_wallet|truncatechars:16 }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if tx.smart_contract_tx_hash %}
+            <a href="{{ etherscan_base_url }}/tx/{{ tx.smart_contract_tx_hash }}" target="_blank" rel="noopener"
+               class="detail-card p-4 flex items-center gap-3 text-primary font-headline font-bold text-xs hover:border-primary/30 transition-colors" style="display: flex;">
+                <span class="material-symbols-outlined text-base">open_in_new</span>
+                Xem trên Etherscan
+            </a>
+            {% endif %}
+
+            <a href="{% url 'transactions:history' %}" class="detail-card p-4 flex items-center gap-3 text-on-surface-variant hover:text-primary font-headline font-bold text-xs transition-colors" style="display: flex;">
+                <span class="material-symbols-outlined text-base">arrow_back</span>
+                Quay lại danh sách
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

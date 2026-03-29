@@ -55,6 +55,7 @@ def product_detail(request, product_id):
         'product': product,
         'seller_wallet': seller_wallet,
         'can_edit': can_edit,
+        'is_owner': is_owner,
     }
     return render(request, 'marketplace/product_detail.html', context)
 

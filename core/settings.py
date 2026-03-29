@@ -94,6 +94,7 @@ _connect_timeout = os.getenv('DB_CONNECT_TIMEOUT', '10')
 if _connect_timeout:
     _db_options['connect_timeout'] = int(_connect_timeout)
 
+# database cua du an
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -149,6 +150,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 WHITENOISE_USE_FINDERS = True
 
 # Cloudinary configuration
+# nơi lưu hình ảnh sản phẩm và hình ảnh yêu cầu trả hàng hoàn tiềntiền trên cloudinary 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
@@ -161,6 +163,7 @@ cloudinary.config(
     api_secret=os.getenv('CLOUDINARY_API_SECRET', ''),
     secure=True
 )
+# nơi lưu file mặc định 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -169,5 +172,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# url đại diện cho login django
 
 LOGIN_URL = '/users/login/'

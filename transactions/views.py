@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
@@ -39,17 +39,30 @@ def checkout(request, product_id):
     except UserProfile.DoesNotExist:
         buyer_wallet = None
 
+    # Prevent buying own product
+    if request.user == product.seller:
+        return redirect('marketplace:product_detail', product_id=product.id)
+
     if request.method == 'POST':
-        # Create the Transaction record
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except json.JSONDecodeError:
+            data = {}
+
         transaction = Transaction.objects.create(
             buyer=request.user,
             seller=product.seller,
             product=product,
             amount=product.price,
             status='Created',
+            receiver_name=data.get('receiver_name', ''),
+            receiver_phone=data.get('receiver_phone', ''),
+            shipping_city=data.get('shipping_city', ''),
+            shipping_district=data.get('shipping_district', ''),
+            shipping_ward=data.get('shipping_ward', ''),
+            shipping_address=data.get('shipping_address', ''),
         )
 
-        # Mark the product as SOLD
         product.status = 'SOLD'
         product.save()
 
@@ -58,7 +71,6 @@ def checkout(request, product_id):
             'transaction_id': transaction.id,
         })
 
-    # GET request – render the checkout page
     context = {
         'product': product,
         'seller_wallet': seller_wallet,
@@ -112,6 +124,9 @@ def update_transaction_status(request):
     except Transaction.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Transaction not found.'}, status=404)
 
+    if transaction.is_locked:
+        return JsonResponse({'success': False, 'error': 'Đơn hàng đã bị khóa. Không thể cập nhật trạng thái.'}, status=403)
+
     transaction.status = new_status
     if tx_hash:
         transaction.smart_contract_tx_hash = tx_hash
@@ -148,6 +163,9 @@ def create_refund_request(request):
             transaction = Transaction.objects.get(pk=transaction_id, buyer=request.user)
         except Transaction.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Giao dịch không tồn tại.'}, status=404)
+
+        if transaction.is_locked:
+            return JsonResponse({'success': False, 'error': 'Đơn hàng đã bị khóa.'}, status=403)
 
         if transaction.status != 'Funded':
             return JsonResponse({'success': False, 'error': 'Chỉ có thể yêu cầu trả hàng khi đã thanh toán (Funded).'}, status=400)
@@ -292,6 +310,132 @@ def admin_refund_detail(request, refund_id):
         'evidence_urls': refund.get_evidence_urls(),
     }
     return render(request, 'transactions/admin_refund_detail.html', context)
+
+
+@login_required
+def transaction_detail(request, transaction_id):
+    """
+    User views full detail of an order they're involved in (buyer or seller).
+    """
+    tx = get_object_or_404(
+        Transaction.objects.select_related('product', 'buyer', 'seller', 'product__category'),
+        pk=transaction_id,
+    )
+
+    is_buyer = request.user == tx.buyer
+    is_seller = request.user == tx.seller
+    is_admin = request.user.is_staff
+
+    if not (is_buyer or is_seller or is_admin):
+        raise Http404
+
+    buyer_wallet = ''
+    try:
+        buyer_wallet = UserProfile.objects.get(user=tx.buyer).wallet_address
+    except UserProfile.DoesNotExist:
+        pass
+
+    seller_wallet = ''
+    try:
+        seller_wallet = UserProfile.objects.get(user=tx.seller).wallet_address
+    except UserProfile.DoesNotExist:
+        pass
+
+    refund_requests = tx.refund_requests.all().order_by('-created_at')
+
+    context = {
+        'tx': tx,
+        'buyer_wallet': buyer_wallet,
+        'seller_wallet': seller_wallet,
+        'is_buyer': is_buyer,
+        'is_seller': is_seller,
+        'refund_requests': refund_requests,
+        'etherscan_base_url': ETHERSCAN_BASE_URL,
+    }
+    return render(request, 'transactions/transaction_detail.html', context)
+
+
+@staff_member_required
+def admin_order_list(request):
+    """
+    Admin: list all orders with filter by status and locked.
+    """
+    status_filter = request.GET.get('status', 'all')
+    locked_only = request.GET.get('locked') == '1'
+
+    orders = Transaction.objects.select_related(
+        'product', 'buyer', 'seller'
+    ).order_by('-created_at')
+
+    if locked_only:
+        orders = orders.filter(is_locked=True)
+    elif status_filter != 'all':
+        orders = orders.filter(status=status_filter)
+
+    counts = {
+        'all': Transaction.objects.count(),
+        'Created': Transaction.objects.filter(status='Created').count(),
+        'Funded': Transaction.objects.filter(status='Funded').count(),
+        'Disputed': Transaction.objects.filter(status='Disputed').count(),
+        'Completed': Transaction.objects.filter(status='Completed').count(),
+        'Cancelled': Transaction.objects.filter(status='Cancelled').count(),
+        'locked': Transaction.objects.filter(is_locked=True).count(),
+    }
+
+    context = {
+        'orders': orders,
+        'status_filter': status_filter,
+        'locked_only': locked_only,
+        'counts': counts,
+    }
+    return render(request, 'transactions/admin_order_list.html', context)
+
+
+@staff_member_required
+def admin_order_detail(request, transaction_id):
+    """
+    Admin: view full detail of an order including refund requests.
+    """
+    tx = get_object_or_404(
+        Transaction.objects.select_related('product', 'buyer', 'seller', 'product__category'),
+        pk=transaction_id,
+    )
+
+    buyer_wallet = ''
+    try:
+        buyer_wallet = UserProfile.objects.get(user=tx.buyer).wallet_address
+    except UserProfile.DoesNotExist:
+        pass
+
+    seller_wallet = ''
+    try:
+        seller_wallet = UserProfile.objects.get(user=tx.seller).wallet_address
+    except UserProfile.DoesNotExist:
+        pass
+
+    refund_requests = tx.refund_requests.all().order_by('-created_at')
+
+    context = {
+        'tx': tx,
+        'buyer_wallet': buyer_wallet,
+        'seller_wallet': seller_wallet,
+        'refund_requests': refund_requests,
+        'etherscan_base_url': ETHERSCAN_BASE_URL,
+        'contract_address': CONTRACT_ADDRESS,
+    }
+    return render(request, 'transactions/admin_order_detail.html', context)
+
+
+@staff_member_required
+@require_POST
+def admin_order_toggle_lock(request, transaction_id):
+    """
+    Admin: toggle is_locked on an order. Redirects back to admin order detail.
+    """
+    tx = get_object_or_404(Transaction, pk=transaction_id)
+    tx.is_locked = not tx.is_locked
+    tx.save()
+    return redirect('transactions:admin_order_detail', transaction_id=tx.id)
 
 
 @csrf_exempt

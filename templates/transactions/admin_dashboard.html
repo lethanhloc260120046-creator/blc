@@ -280,6 +280,23 @@
                 <div id="sync-fee-result" class="hidden mt-3 text-center text-sm font-headline font-bold text-primary"></div>
             </div>
 
+            <!-- Quick Action: Order Management -->
+            <div class="dashboard-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">receipt_long</span>
+                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý đơn hàng</span>
+                </div>
+                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
+                    {{ total_count }} đơn hàng. Xem chi tiết, khóa/mở khóa đơn.
+                </p>
+                <a href="{% url 'transactions:admin_order_list' %}"
+                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
+                   style="background: linear-gradient(135deg, #4edea3 0%, #009365 100%); color: #003824;">
+                    <span class="material-symbols-outlined text-base">receipt_long</span>
+                    Quản lý đơn hàng
+                </a>
+            </div>
+
             <!-- Quick Action: Product Management -->
             <div class="dashboard-card p-6">
                 <div class="flex items-center gap-2 mb-4">

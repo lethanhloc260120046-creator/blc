@@ -9,7 +9,7 @@
  *                           getTransaction()
  *
  * Exposed functions:
- *   - initiateCheckout(productId, sellerWallet, priceInVnd)
+ *   - initiateCheckout(productId, sellerWallet, priceInVnd, shippingData)
  *   - confirmTransaction(txId)
  *   - cancelTransaction(txId)
  *   - payTransaction(txId)
@@ -85,7 +85,7 @@ function truncateAddress(address) {
  * @param {string}        sellerWallet - The seller's wallet address.
  * @param {string}        priceInVnd   - The product price in VND (e.g. "25000000").
  */
-async function initiateCheckout(productId, sellerWallet, priceInVnd) {
+async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingData) {
     const checkoutBtn = document.getElementById('checkout-btn');
     const originalBtnText = checkoutBtn ? checkoutBtn.textContent : '';
 
@@ -119,6 +119,7 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCsrfToken(),
             },
+            body: JSON.stringify(shippingData || {}),
         });
 
         const checkoutData = await checkoutResponse.json();

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quản lý đơn hàng — Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .filter-tab {
+        background: rgba(45, 52, 73, 0.6);
+        border: 1px solid rgba(69, 70, 77, 0.3);
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #c6c6cd;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .filter-tab:hover { border-color: rgba(78, 222, 163, 0.3); color: #dae2fd; }
+    .filter-tab.active { background: rgba(78, 222, 163, 0.1); border-color: rgba(78, 222, 163, 0.4); color: #4edea3; }
+    .filter-tab.active-warn { background: rgba(255, 180, 171, 0.1); border-color: rgba(255, 180, 171, 0.3); color: #ffb4ab; }
+    .order-row {
+        background: rgba(19, 27, 46, 0.85);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1rem;
+        transition: border-color 0.2s;
+        text-decoration: none;
+        display: block;
+    }
+    .order-row:hover { border-color: rgba(78, 222, 163, 0.2); }
+    .order-row.locked { border-color: rgba(255, 180, 171, 0.2); }
+    .badge-created { background: rgba(185,199,224,0.1); color: #b9c7e0; }
+    .badge-funded { background: rgba(78,222,163,0.1); color: #4edea3; }
+    .badge-completed { background: rgba(0,147,101,0.15); color: #6ffbbe; }
+    .badge-cancelled { background: rgba(255,180,171,0.1); color: #ffb4ab; }
+    .badge-disputed { background: rgba(255,213,79,0.1); color: #ffd54f; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
+                <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">receipt_long</span>
+            </div>
+            <div>
+                <h1 class="text-3xl lg:text-4xl font-headline font-extrabold text-[#dae2fd] tracking-tight">Quản lý đơn hàng</h1>
+                <p class="text-sm text-on-surface-variant font-body">Xem chi tiết, khóa/mở khóa đơn hàng</p>
+            </div>
+        </div>
+        <a href="{% url 'transactions:admin_dashboard' %}" class="flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            Dashboard
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-8">
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(78, 222, 163, 0.08);">
+            <div class="text-xl font-headline font-extrabold text-[#dae2fd]">{{ counts.all }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Tổng</div>
+        </div>
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(185,199,224,0.12);">
+            <div class="text-xl font-headline font-extrabold" style="color: #b9c7e0;">{{ counts.Created }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Created</div>
+        </div>
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(78,222,163,0.12);">
+            <div class="text-xl font-headline font-extrabold text-primary">{{ counts.Funded }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Funded</div>
+        </div>
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(255,213,79,0.12);">
+            <div class="text-xl font-headline font-extrabold" style="color: #ffd54f;">{{ counts.Disputed }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Disputed</div>
+        </div>
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(111,251,190,0.12);">
+            <div class="text-xl font-headline font-extrabold" style="color: #6ffbbe;">{{ counts.Completed }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Completed</div>
+        </div>
+        <div class="text-center p-3 rounded-xl" style="background: rgba(45, 52, 73, 0.6); border: 1px solid rgba(255,180,171,0.12);">
+            <div class="text-xl font-headline font-extrabold text-error">{{ counts.Cancelled }}</div>
+            <div class="text-[9px] uppercase tracking-widest text-outline font-label mt-1">Cancelled</div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex flex-wrap items-center gap-3 mb-8">
+        <a href="?status=all" class="filter-tab font-headline {% if status_filter == 'all' and not locked_only %}active{% endif %}">Tất cả ({{ counts.all }})</a>
+        <a href="?status=Created" class="filter-tab font-headline {% if status_filter == 'Created' %}active{% endif %}">Created ({{ counts.Created }})</a>
+        <a href="?status=Funded" class="filter-tab font-headline {% if status_filter == 'Funded' %}active{% endif %}">Funded ({{ counts.Funded }})</a>
+        <a href="?status=Disputed" class="filter-tab font-headline {% if status_filter == 'Disputed' %}active{% endif %}">Disputed ({{ counts.Disputed }})</a>
+        <a href="?status=Completed" class="filter-tab font-headline {% if status_filter == 'Completed' %}active{% endif %}">Completed ({{ counts.Completed }})</a>
+        <a href="?status=Cancelled" class="filter-tab font-headline {% if status_filter == 'Cancelled' %}active{% endif %}">Cancelled ({{ counts.Cancelled }})</a>
+        {% if counts.locked > 0 %}
+        <a href="?locked=1" class="filter-tab font-headline {% if locked_only %}active-warn{% endif %}">
+            🔒 Đã khóa ({{ counts.locked }})
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Order List -->
+    {% if orders %}
+    <div class="space-y-4">
+        {% for order in orders %}
+        <a href="{% url 'transactions:admin_order_detail' order.id %}" class="order-row p-4 flex items-center gap-4 {% if order.is_locked %}locked{% endif %}">
+            <!-- Image -->
+            <div class="w-14 h-14 rounded-lg overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                {% if order.product.get_image_url %}
+                <img src="{{ order.product.get_image_url }}" alt="" class="w-full h-full object-cover"/>
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-outline/30 text-xl">image</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-sm font-headline font-bold text-[#dae2fd] truncate">{{ order.product.name }}</span>
+                    {% if order.status == 'Created' %}
+                    <span class="badge-created text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Created</span>
+                    {% elif order.status == 'Funded' %}
+                    <span class="badge-funded text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Funded</span>
+                    {% elif order.status == 'Disputed' %}
+                    <span class="badge-disputed text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Disputed</span>
+                    {% elif order.status == 'Completed' %}
+                    <span class="badge-completed text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Completed</span>
+                    {% elif order.status == 'Cancelled' %}
+                    <span class="badge-cancelled text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Cancelled</span>
+                    {% endif %}
+                    {% if order.is_locked %}
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1" style="background: rgba(255,180,171,0.1); color: #ffb4ab;">
+                        <span class="material-symbols-outlined text-[10px]">lock</span> Khóa
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-on-surface-variant font-body">
+                    Order #{{ order.id }}
+                    · Buyer: {{ order.buyer.username|truncatechars:15 }}
+                    · Seller: {{ order.seller.username|truncatechars:15 }}
+                    · {{ order.created_at|date:"d/m/Y" }}
+                </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="text-right flex-shrink-0">
+                <div class="text-sm font-headline font-extrabold text-primary vnd-price" data-vnd="{{ order.amount }}">{{ order.amount|floatformat:0 }} ₫</div>
+                <div class="text-[10px] text-on-surface-variant font-body vnd-to-eth" data-vnd-price="{{ order.amount }}"></div>
+            </div>
+
+            <span class="material-symbols-outlined text-outline/30 flex-shrink-0">chevron_right</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <span class="material-symbols-outlined text-5xl text-outline/30">receipt_long</span>
+        <p class="text-lg text-on-surface-variant font-headline font-bold mt-4">Không có đơn hàng nào</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
