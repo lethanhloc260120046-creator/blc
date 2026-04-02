@@ -177,7 +177,7 @@
                     <!-- Product Image -->
                     <div class="sm:w-64 flex-shrink-0 aspect-[4/3] sm:aspect-auto overflow-hidden bg-surface-container-lowest">
                         {% if product.get_image_url %}
-                        <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover"/>
+                        <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-media-fit"/>
                         {% else %}
                         <div class="w-full h-full flex items-center justify-center min-h-[200px]">
                             <span class="material-symbols-outlined text-5xl text-outline/30">image</span>
@@ -370,7 +370,7 @@
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
                         {% if product.get_image_url %}
-                        <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover"/>
+                        <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-media-fit"/>
                         {% else %}
                         <div class="w-full h-full flex items-center justify-center">
                             <span class="material-symbols-outlined text-outline/30 text-xl">image</span>

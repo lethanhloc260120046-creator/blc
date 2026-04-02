@@ -84,7 +84,7 @@
                     {% if item.product.get_image_url %}
                     <img src="{{ item.product.get_image_url }}"
                          alt="{{ item.product.name }}"
-                         class="w-full h-full object-cover" />
+                         class="product-media-fit" />
                     {% else %}
                     <div class="w-full h-full bg-surface-container-highest flex items-center justify-center">
                         <span class="material-symbols-outlined text-4xl text-outline/30">inventory_2</span>
@@ -112,10 +112,15 @@
                             <span class="text-xl font-headline font-extrabold text-primary vnd-price" data-vnd="{{ item.product.price }}">{{ item.product.price|floatformat:0 }} ₫</span>
                             <span class="text-xs text-on-surface-variant font-body vnd-to-eth block" data-vnd-price="{{ item.product.price }}"></span>
                         </div>
-                    </div>
+                </div>
 
-                    <!-- Remove Button -->
-                    <div class="flex-shrink-0">
+                    <!-- Actions -->
+                    <div class="flex-shrink-0 flex flex-col sm:items-end gap-2">
+                        <a href="{% url 'transactions:checkout' item.product.id %}"
+                           class="btn-checkout flex items-center justify-center gap-2 text-[#003824] text-sm font-headline font-bold px-4 py-2.5 rounded-xl no-underline">
+                            <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                            Checkout
+                        </a>
                         <form method="POST" action="{% url 'marketplace:remove_from_cart' item.id %}">
                             {% csrf_token %}
                             <button type="submit"
@@ -164,12 +169,27 @@
                     <span class="text-[10px] text-primary font-headline font-bold tracking-wide">Escrow Protected</span>
                 </div>
 
+                {% if cart_items|length == 1 %}
                 <!-- Checkout Button -->
-                <a href="{% url 'marketplace:product_list' %}"
+                <a href="{% url 'transactions:checkout' cart_items.0.product.id %}"
                    class="btn-checkout w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-[#003824] font-headline font-extrabold tracking-tight text-sm no-underline">
                     <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
                     Proceed to Checkout
                 </a>
+                {% else %}
+                <div class="rounded-xl px-4 py-3 text-sm font-body" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15); color: #ffd54f;">
+                    Giỏ hàng hiện có nhiều sản phẩm. Hệ thống hiện hỗ trợ thanh toán từng sản phẩm một.
+                </div>
+                <div class="space-y-2">
+                    {% for item in cart_items %}
+                    <a href="{% url 'transactions:checkout' item.product.id %}"
+                       class="btn-checkout w-full flex items-center justify-between gap-3 py-3 px-4 rounded-xl text-[#003824] font-headline font-bold tracking-tight text-sm no-underline">
+                        <span class="truncate">{{ item.product.name }}</span>
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">arrow_forward</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
                 <!-- Continue Shopping -->
                 <a href="{% url 'marketplace:product_list' %}"

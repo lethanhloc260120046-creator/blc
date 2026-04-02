@@ -8,6 +8,7 @@ urlpatterns = [
     path('history/', views.transaction_history, name='history'),
     path('order/<int:transaction_id>/', views.transaction_detail, name='transaction_detail'),
     path('api/update_status/', views.update_transaction_status, name='update_status'),
+    path('api/abandon_checkout/', views.abandon_checkout, name='abandon_checkout'),
     path('api/refund_request/', views.create_refund_request, name='create_refund_request'),
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/orders/', views.admin_order_list, name='admin_order_list'),

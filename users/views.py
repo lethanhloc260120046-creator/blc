@@ -1,5 +1,8 @@
 import json
 import uuid
+from decimal import Decimal
+from urllib import request as urllib_request
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +14,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from eth_account.messages import encode_defunct
 from eth_account import Account
 from eth_utils import to_checksum_address
+from django.conf import settings
 from .models import UserProfile
 
 
@@ -146,6 +150,64 @@ def profile_page(request):
         'transactions': transactions,
     }
     return render(request, 'users/profile.html', context)
+
+
+@login_required
+def wallet_balance_api(request):
+    """
+    Read the logged-in user's wallet balance from the configured RPC node.
+    This works in production without requiring MetaMask in the browser.
+    """
+    rpc_url = getattr(settings, 'ETH_RPC_URL', '')
+    if not rpc_url:
+        return JsonResponse({
+            'success': False,
+            'error': 'ETH_RPC_URL chưa được cấu hình trên server.',
+        }, status=503)
+
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Người dùng chưa liên kết ví.',
+        }, status=404)
+
+    try:
+        payload = json.dumps({
+            'jsonrpc': '2.0',
+            'method': 'eth_getBalance',
+            'params': [profile.wallet_address, 'latest'],
+            'id': 1,
+        }).encode('utf-8')
+
+        req = urllib_request.Request(
+            rpc_url,
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST',
+        )
+
+        with urllib_request.urlopen(req, timeout=10) as response:
+            body = json.loads(response.read().decode('utf-8'))
+
+        if body.get('error'):
+            raise ValueError(body['error'].get('message', 'RPC error'))
+
+        wei_hex = body.get('result', '0x0')
+        wei_int = int(wei_hex, 16)
+        eth_balance = Decimal(wei_int) / Decimal('1000000000000000000')
+
+        return JsonResponse({
+            'success': True,
+            'wallet_address': profile.wallet_address,
+            'eth_balance': format(eth_balance.quantize(Decimal('0.00000001')), 'f'),
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Không đọc được số dư ví: {e}',
+        }, status=502)
 
 
 # ═══════════════════════════════════════════════════════════════════════

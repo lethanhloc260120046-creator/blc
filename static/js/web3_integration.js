@@ -19,6 +19,19 @@
 
 // ── Contract constants ──────────────────────────────────────────────────────
 const CONTRACT_ADDRESS = '0x35F481cE890d00b58AF788494beE2b81D7eE6E54';
+const REQUIRED_CHAIN_ID_HEX = '0xaa36a7';
+const REQUIRED_CHAIN_NAME = 'Sepolia';
+const REQUIRED_CHAIN_CONFIG = {
+    chainId: REQUIRED_CHAIN_ID_HEX,
+    chainName: 'Sepolia',
+    nativeCurrency: {
+        name: 'Sepolia ETH',
+        symbol: 'ETH',
+        decimals: 18,
+    },
+    rpcUrls: ['https://eth-sepolia.g.alchemy.com/v2/AK66B1YoH3D7dYP2qJKBZ'],
+    blockExplorerUrls: ['https://sepolia.etherscan.io'],
+};
 
 const CONTRACT_ABI = [
     {
@@ -108,6 +121,38 @@ let provider = null;
 let signer = null;
 let contract = null;
 
+async function ensureRequiredChain() {
+    if (typeof window.ethereum === 'undefined') {
+        throw new Error('MetaMask is not installed. Please install MetaMask to interact with the blockchain.');
+    }
+
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: REQUIRED_CHAIN_ID_HEX }],
+        });
+    } catch (error) {
+        if (error.code === 4902) {
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [REQUIRED_CHAIN_CONFIG],
+            });
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: REQUIRED_CHAIN_ID_HEX }],
+            });
+            return;
+        }
+
+        if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+            alert('Bạn cần chuyển MetaMask sang mạng ' + REQUIRED_CHAIN_NAME + ' để thanh toán.');
+        } else {
+            alert('Không thể chuyển sang mạng ' + REQUIRED_CHAIN_NAME + ': ' + (error.message || 'Unknown error.'));
+        }
+        throw error;
+    }
+}
+
 /**
  * Initialize the ethers provider, signer, and contract instance.
  * Requests MetaMask account access if not already connected.
@@ -122,6 +167,7 @@ async function initContract() {
 
         provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send('eth_requestAccounts', []);
+        await ensureRequiredChain();
         signer = await provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 

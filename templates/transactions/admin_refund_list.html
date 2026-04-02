@@ -112,7 +112,7 @@
                 <!-- Product Image -->
                 <div class="w-16 h-16 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
                     {% if refund.transaction.product.get_image_url %}
-                    <img src="{{ refund.transaction.product.get_image_url }}" alt="{{ refund.transaction.product.name }}" class="w-full h-full object-cover"/>
+                    <img src="{{ refund.transaction.product.get_image_url }}" alt="{{ refund.transaction.product.name }}" class="product-media-fit"/>
                     {% else %}
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>

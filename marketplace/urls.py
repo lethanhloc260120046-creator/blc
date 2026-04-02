@@ -5,6 +5,7 @@ app_name = 'marketplace'
 
 urlpatterns = [
     path('', views.product_list, name='product_list'),
+    path('api/search-suggestions/', views.search_suggestions, name='search_suggestions'),
     path('product/<int:product_id>/', views.product_detail, name='product_detail'),
     path('product/<int:product_id>/edit/', views.edit_product, name='edit_product'),
     path('my-products/', views.my_products, name='my_products'),

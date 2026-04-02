@@ -42,6 +42,21 @@
         background: rgba(78, 222, 163, 0.04);
     }
 
+    .recent-scroll {
+        max-height: 32rem;
+        overflow-y: auto;
+        padding-right: 0.35rem;
+    }
+
+    .recent-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .recent-scroll::-webkit-scrollbar-thumb {
+        background: rgba(78, 222, 163, 0.18);
+        border-radius: 999px;
+    }
+
     .etherscan-link {
         background: rgba(78, 222, 163, 0.08);
         border: 1px solid rgba(78, 222, 163, 0.2);
@@ -68,6 +83,137 @@
     @keyframes pulse-yellow {
         0%, 100% { box-shadow: 0 0 0 0 rgba(255, 213, 79, 0.5); }
         50% { box-shadow: 0 0 0 8px rgba(255, 213, 79, 0); }
+    }
+
+    .admin-sidebar {
+        position: sticky;
+        top: 6.5rem;
+    }
+
+    .sidebar-card {
+        background: rgba(19, 27, 46, 0.9);
+        border: 1px solid rgba(78, 222, 163, 0.08);
+        border-radius: 1.25rem;
+        overflow: hidden;
+    }
+
+    .sidebar-scroll {
+        max-height: calc(100vh - 9rem);
+        overflow-y: auto;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: rgba(78, 222, 163, 0.18);
+        border-radius: 999px;
+    }
+
+    .tree-group {
+        border-top: 1px solid rgba(69, 70, 77, 0.22);
+    }
+
+    .tree-group:first-of-type {
+        border-top: none;
+    }
+
+    .tree-summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+        transition: background 0.2s;
+    }
+
+    .tree-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .tree-summary:hover {
+        background: rgba(78, 222, 163, 0.04);
+    }
+
+    .tree-caret {
+        transition: transform 0.2s;
+        color: #909097;
+    }
+
+    .tree-group[open] .tree-caret {
+        transform: rotate(90deg);
+        color: #4edea3;
+    }
+
+    .tree-content {
+        padding: 0 0.9rem 0.95rem;
+    }
+
+    .tree-link {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        width: 100%;
+        padding: 0.85rem 0.95rem;
+        border-radius: 0.95rem;
+        text-decoration: none;
+        transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        background: rgba(45, 52, 73, 0.38);
+        border: 1px solid rgba(69, 70, 77, 0.28);
+    }
+
+    .tree-link:hover {
+        background: rgba(78, 222, 163, 0.07);
+        border-color: rgba(78, 222, 163, 0.22);
+        transform: translateX(2px);
+    }
+
+    .tree-link + .tree-link {
+        margin-top: 0.65rem;
+    }
+
+    .tree-link-primary {
+        color: #dae2fd;
+    }
+
+    .tree-link-warn {
+        background: rgba(255, 213, 79, 0.07);
+        border-color: rgba(255, 213, 79, 0.14);
+    }
+
+    .tree-link-warn:hover {
+        background: rgba(255, 213, 79, 0.11);
+        border-color: rgba(255, 213, 79, 0.24);
+    }
+
+    .tree-link-soft {
+        background: rgba(190, 198, 224, 0.06);
+        border-color: rgba(190, 198, 224, 0.12);
+    }
+
+    .tree-icon {
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .sidebar-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 999px;
+        padding: 0 0.45rem;
+        font-size: 0.65rem;
+        font-weight: 800;
     }
 </style>
 {% endblock %}
@@ -174,33 +320,35 @@
                 </div>
 
                 {% if recent_completed %}
-                <div class="space-y-0 divide-y divide-outline-variant/10">
-                    {% for tx in recent_completed %}
-                    <div class="recent-row flex items-center gap-4 py-3 px-2 rounded-lg">
-                        <div class="w-10 h-10 rounded-lg overflow-hidden bg-surface-container-lowest flex-shrink-0">
-                            {% if tx.product.get_image_url %}
-                            <img src="{{ tx.product.get_image_url }}" alt="" class="w-full h-full object-cover"/>
-                            {% else %}
-                            <div class="w-full h-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-outline/30 text-sm">image</span>
+                <div class="recent-scroll">
+                    <div class="space-y-0 divide-y divide-outline-variant/10">
+                        {% for tx in recent_completed %}
+                        <div class="recent-row flex items-center gap-4 py-3 px-2 rounded-lg">
+                            <div class="w-10 h-10 rounded-lg overflow-hidden bg-surface-container-lowest flex-shrink-0">
+                                {% if tx.product.get_image_url %}
+                                <img src="{{ tx.product.get_image_url }}" alt="" class="product-media-fit"/>
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-outline/30 text-sm">image</span>
+                                </div>
+                                {% endif %}
                             </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</div>
+                                <div class="text-[10px] text-on-surface-variant font-body">Order #{{ tx.id }} — {{ tx.updated_at|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <div class="text-xs font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
+                                <div class="text-[10px] text-on-surface-variant font-body">Phí: <span class="text-primary font-bold">{{ tx.amount|floatformat:0 }}₫ × {{ fee_percent }}%</span></div>
+                            </div>
+                            {% if tx.smart_contract_tx_hash %}
+                            <a href="{{ etherscan_base_url }}/tx/{{ tx.smart_contract_tx_hash }}" target="_blank" rel="noopener" class="text-primary/50 hover:text-primary transition-colors flex-shrink-0" title="Xem trên Etherscan">
+                                <span class="material-symbols-outlined text-sm">open_in_new</span>
+                            </a>
                             {% endif %}
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs font-headline font-bold text-[#dae2fd] truncate">{{ tx.product.name }}</div>
-                            <div class="text-[10px] text-on-surface-variant font-body">Order #{{ tx.id }} — {{ tx.updated_at|date:"d/m/Y H:i" }}</div>
-                        </div>
-                        <div class="text-right flex-shrink-0">
-                            <div class="text-xs font-headline font-extrabold text-primary vnd-price" data-vnd="{{ tx.amount }}">{{ tx.amount|floatformat:0 }} ₫</div>
-                            <div class="text-[10px] text-on-surface-variant font-body">Phí: <span class="text-primary font-bold">{{ tx.amount|floatformat:0 }}₫ × {{ fee_percent }}%</span></div>
-                        </div>
-                        {% if tx.smart_contract_tx_hash %}
-                        <a href="{{ etherscan_base_url }}/tx/{{ tx.smart_contract_tx_hash }}" target="_blank" rel="noopener" class="text-primary/50 hover:text-primary transition-colors flex-shrink-0" title="Xem trên Etherscan">
-                            <span class="material-symbols-outlined text-sm">open_in_new</span>
-                        </a>
-                        {% endif %}
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center py-8">
@@ -212,171 +360,178 @@
 
         </div>
 
-        <!-- ═══════════════════════ Right: Contract Info + Quick Actions ═══════════════════════ -->
-        <div class="space-y-6">
-
-            <!-- Smart Contract Info -->
-            <div class="contract-card p-6">
-                <div class="flex items-center gap-3 mb-5">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255, 213, 79, 0.12);">
-                        <span class="material-symbols-outlined text-xl" style="color: #ffd54f; font-variation-settings: 'FILL' 1;">token</span>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-headline font-bold text-[#dae2fd]">Smart Contract</h3>
-                        <p class="text-[10px] text-on-surface-variant font-body">EscrowMarketplace v2</p>
-                    </div>
-                </div>
-
-                <div class="space-y-3 mb-5">
-                    <div>
-                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Contract Address</div>
-                        <div class="font-mono text-xs text-[#dae2fd]/80 break-all leading-relaxed">{{ contract_address }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Phí sàn hiện tại</div>
-                        <div class="text-lg font-headline font-extrabold" style="color: #ffd54f;" id="fee-display">{{ fee_percent }}%</div>
-                        <div class="text-[10px] text-on-surface-variant font-body">(Đọc từ DB — bấm nút bên dưới để đồng bộ từ blockchain)</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Network</div>
-                        <div class="text-xs font-headline font-bold text-[#dae2fd]">Sepolia Testnet</div>
+        <!-- ═══════════════════════ Right: Compact Admin Tree ═══════════════════════ -->
+        <div class="admin-sidebar">
+            <div class="sidebar-card">
+                <div class="px-5 py-4 border-b border-outline-variant/20">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(255, 213, 79, 0.18) 0%, rgba(255, 143, 0, 0.12) 100%);">
+                            <span class="material-symbols-outlined text-xl" style="color: #ffd54f; font-variation-settings: 'FILL' 1;">account_tree</span>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-headline font-bold text-[#dae2fd]">Admin Navigation</h3>
+                            <p class="text-[10px] text-on-surface-variant font-body">Menu cây gọn, cuộn trong cột phải</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Etherscan Links -->
-                <div class="space-y-2">
-                    <a href="{{ etherscan_url }}" target="_blank" rel="noopener"
-                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
-                        <span class="material-symbols-outlined text-base">open_in_new</span>
-                        Xem Contract trên Etherscan
-                    </a>
-                    <a href="{{ etherscan_url }}#internaltx" target="_blank" rel="noopener"
-                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
-                        <span class="material-symbols-outlined text-base">swap_horiz</span>
-                        Xem Internal Transactions
-                    </a>
-                    <a href="{{ etherscan_url }}#events" target="_blank" rel="noopener"
-                       class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
-                        <span class="material-symbols-outlined text-base">event_note</span>
-                        Xem Event Logs
-                    </a>
+                <div class="sidebar-scroll">
+                    <details class="tree-group" open>
+                        <summary class="tree-summary">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="material-symbols-outlined text-lg text-primary">settings_suggest</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-headline font-bold text-[#dae2fd]">Điều hướng quản trị</div>
+                                    <div class="text-[10px] text-on-surface-variant font-body">Các trang thao tác chính</div>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-sm tree-caret">chevron_right</span>
+                        </summary>
+                        <div class="tree-content">
+                            <a href="{% url 'transactions:admin_order_list' %}" class="tree-link tree-link-primary">
+                                <div class="tree-icon" style="background: rgba(78, 222, 163, 0.12); color: #4edea3;">
+                                    <span class="material-symbols-outlined text-lg">receipt_long</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý đơn hàng</span>
+                                        <span class="sidebar-chip bg-primary/15 text-primary">{{ total_count }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-on-surface-variant font-body mt-1">Xem chi tiết, lọc trạng thái và khóa đơn.</div>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'marketplace:admin_product_list' %}{% if pending_products > 0 %}?status=PENDING_APPROVAL{% endif %}" class="tree-link tree-link-primary">
+                                <div class="tree-icon" style="background: rgba(78, 222, 163, 0.12); color: #4edea3;">
+                                    <span class="material-symbols-outlined text-lg">inventory_2</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý sản phẩm</span>
+                                        {% if pending_products > 0 %}
+                                        <span class="sidebar-chip" style="background: rgba(255, 213, 79, 0.14); color: #ffd54f;">{{ pending_products }}</span>
+                                        {% else %}
+                                        <span class="sidebar-chip bg-primary/15 text-primary">OK</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-[11px] text-on-surface-variant font-body mt-1">Duyệt sản phẩm mới, ẩn/hiện và theo dõi hàng đã bán.</div>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'users:admin_user_list' %}" class="tree-link tree-link-soft">
+                                <div class="tree-icon" style="background: rgba(190, 198, 224, 0.12); color: #bec6e0;">
+                                    <span class="material-symbols-outlined text-lg">group</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý người dùng</span>
+                                        <span class="sidebar-chip" style="background: rgba(190, 198, 224, 0.12); color: #bec6e0;">{{ total_users }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-on-surface-variant font-body mt-1">Khóa hoặc mở khóa tài khoản người dùng.</div>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'transactions:admin_refund_list' %}" class="tree-link tree-link-warn">
+                                <div class="tree-icon" style="background: rgba(255, 213, 79, 0.14); color: #ffd54f;">
+                                    <span class="material-symbols-outlined text-lg">gavel</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-sm font-headline font-bold text-[#dae2fd]">Yêu cầu trả hàng</span>
+                                        {% if pending_refunds > 0 %}
+                                        <span class="sidebar-chip" style="background: rgba(255, 213, 79, 0.18); color: #ffd54f;">{{ pending_refunds }}</span>
+                                        {% else %}
+                                        <span class="sidebar-chip bg-primary/15 text-primary">0</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-[11px] text-on-surface-variant font-body mt-1">Ưu tiên xử lý các yêu cầu đang chờ duyệt.</div>
+                                </div>
+                            </a>
+                        </div>
+                    </details>
+
+                    <details class="tree-group" open>
+                        <summary class="tree-summary">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">token</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-headline font-bold text-[#dae2fd]">Smart Contract</div>
+                                    <div class="text-[10px] text-on-surface-variant font-body">Thông tin chain và tiện ích nhanh</div>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-sm tree-caret">chevron_right</span>
+                        </summary>
+                        <div class="tree-content space-y-3">
+                            <div class="contract-card p-4">
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Contract Address</div>
+                                        <div class="font-mono text-[11px] text-[#dae2fd]/80 break-all leading-relaxed">{{ contract_address }}</div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Fee</div>
+                                            <div class="text-base font-headline font-extrabold" style="color: #ffd54f;" id="fee-display">{{ fee_percent }}%</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[10px] uppercase tracking-widest text-outline font-label mb-1">Network</div>
+                                            <div class="text-xs font-headline font-bold text-[#dae2fd]">Sepolia</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="syncFeeFromChain()" id="sync-fee-btn"
+                                class="w-full px-4 py-3 rounded-xl bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold text-xs flex items-center justify-center gap-2 transition-all">
+                                <span class="material-symbols-outlined text-sm">refresh</span>
+                                Đồng bộ feePercent()
+                            </button>
+                            <div id="sync-fee-result" class="hidden text-center text-sm font-headline font-bold text-primary"></div>
+
+                            <a href="{{ etherscan_url }}" target="_blank" rel="noopener"
+                               class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
+                                <span class="material-symbols-outlined text-base">open_in_new</span>
+                                Mở Contract trên Etherscan
+                            </a>
+                            <a href="{{ etherscan_url }}#events" target="_blank" rel="noopener"
+                               class="etherscan-link w-full px-4 py-3 rounded-xl flex items-center gap-3 text-primary font-headline font-bold text-xs">
+                                <span class="material-symbols-outlined text-base">event_note</span>
+                                Xem Event Logs
+                            </a>
+                        </div>
+                    </details>
+
+                    <details class="tree-group">
+                        <summary class="tree-summary">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">notifications_active</span>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-headline font-bold text-[#dae2fd]">Cảnh báo nhanh</div>
+                                    <div class="text-[10px] text-on-surface-variant font-body">Các mục cần chú ý ngay</div>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-sm tree-caret">chevron_right</span>
+                        </summary>
+                        <div class="tree-content space-y-3">
+                            <div class="rounded-xl px-4 py-3" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs font-headline font-bold" style="color: #ffd54f;">Refund chờ duyệt</span>
+                                    <span class="sidebar-chip" style="background: rgba(255, 213, 79, 0.16); color: #ffd54f;">{{ pending_refunds }}</span>
+                                </div>
+                                <div class="text-[11px] text-on-surface-variant font-body mt-2">Hoàn tiền đang chờ admin xử lý.</div>
+                            </div>
+
+                            <div class="rounded-xl px-4 py-3" style="background: rgba(78, 222, 163, 0.06); border: 1px solid rgba(78, 222, 163, 0.12);">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs font-headline font-bold text-primary">Sản phẩm chờ duyệt</span>
+                                    <span class="sidebar-chip bg-primary/15 text-primary">{{ pending_products }}</span>
+                                </div>
+                                <div class="text-[11px] text-on-surface-variant font-body mt-2">Sản phẩm mới chưa được admin duyệt.</div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
-
-            <!-- On-chain Fee Sync -->
-            <div class="dashboard-card p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">sync</span>
-                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Đồng bộ phí từ Blockchain</span>
-                </div>
-                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
-                    Đọc % phí sàn hiện tại trực tiếp từ Smart Contract trên blockchain.
-                </p>
-                <button onclick="syncFeeFromChain()" id="sync-fee-btn"
-                    class="w-full px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold text-xs flex items-center justify-center gap-2 transition-all">
-                    <span class="material-symbols-outlined text-sm">refresh</span>
-                    Đọc feePercent() từ Contract
-                </button>
-                <div id="sync-fee-result" class="hidden mt-3 text-center text-sm font-headline font-bold text-primary"></div>
-            </div>
-
-            <!-- Quick Action: Order Management -->
-            <div class="dashboard-card p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">receipt_long</span>
-                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý đơn hàng</span>
-                </div>
-                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
-                    {{ total_count }} đơn hàng. Xem chi tiết, khóa/mở khóa đơn.
-                </p>
-                <a href="{% url 'transactions:admin_order_list' %}"
-                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
-                   style="background: linear-gradient(135deg, #4edea3 0%, #009365 100%); color: #003824;">
-                    <span class="material-symbols-outlined text-base">receipt_long</span>
-                    Quản lý đơn hàng
-                </a>
-            </div>
-
-            <!-- Quick Action: Product Management -->
-            <div class="dashboard-card p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">inventory_2</span>
-                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý sản phẩm</span>
-                </div>
-                {% if pending_products > 0 %}
-                <div class="flex items-center gap-2 p-2.5 rounded-lg mb-3" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
-                    <span class="material-symbols-outlined text-sm" style="color: #ffd54f;">priority_high</span>
-                    <span class="text-xs font-headline font-bold" style="color: #ffd54f;">{{ pending_products }} SP chờ duyệt</span>
-                </div>
-                {% else %}
-                <p class="text-xs text-on-surface-variant font-body mb-3 leading-relaxed">
-                    Duyệt sản phẩm mới, sửa thông tin, ẩn/hiện sản phẩm.
-                </p>
-                {% endif %}
-                <a href="{% url 'marketplace:admin_product_list' %}{% if pending_products > 0 %}?status=PENDING_APPROVAL{% endif %}"
-                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
-                   style="background: linear-gradient(135deg, #4edea3 0%, #009365 100%); color: #003824;">
-                    <span class="material-symbols-outlined text-base">shield_person</span>
-                    Quản lý sản phẩm
-                </a>
-            </div>
-
-            <!-- Quick Action: User Management -->
-            <div class="dashboard-card p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">group</span>
-                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý người dùng</span>
-                </div>
-                <p class="text-xs text-on-surface-variant font-body mb-4 leading-relaxed">
-                    {{ total_users }} người dùng đã đăng ký. Khóa/mở khóa tài khoản.
-                </p>
-                <a href="{% url 'users:admin_user_list' %}"
-                   class="w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2 transition-all no-underline"
-                   style="background: rgba(190, 198, 224, 0.12); border: 1px solid rgba(190, 198, 224, 0.2); color: #bec6e0;">
-                    <span class="material-symbols-outlined text-base">group</span>
-                    Quản lý người dùng
-                </a>
-            </div>
-
-            <!-- Quick Action: Refund Management -->
-            <div class="dashboard-card p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-lg" style="color: #ffd54f;">gavel</span>
-                    <span class="text-sm font-headline font-bold text-[#dae2fd]">Quản lý yêu cầu trả hàng</span>
-                </div>
-
-                {% if pending_refunds > 0 %}
-                <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.15);">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center pulse-pending" style="background: rgba(255, 213, 79, 0.15);">
-                        <span class="material-symbols-outlined text-sm" style="color: #ffd54f;">priority_high</span>
-                    </div>
-                    <div>
-                        <div class="text-sm font-headline font-bold" style="color: #ffd54f;">{{ pending_refunds }} yêu cầu chờ duyệt</div>
-                        <div class="text-[10px] text-on-surface-variant font-body">Cần xử lý ngay</div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background: rgba(78, 222, 163, 0.06); border: 1px solid rgba(78, 222, 163, 0.12);">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(78, 222, 163, 0.12);">
-                        <span class="material-symbols-outlined text-sm text-primary">check_circle</span>
-                    </div>
-                    <div>
-                        <div class="text-sm font-headline font-bold text-primary">Không có yêu cầu chờ</div>
-                        <div class="text-[10px] text-on-surface-variant font-body">Tất cả đã được xử lý</div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <a href="{% url 'transactions:admin_refund_list' %}"
-                   class="btn-refund-mgmt w-full py-3 rounded-xl font-headline font-bold text-sm flex items-center justify-center gap-2" style="color: #1a1a1a;">
-                    <span class="material-symbols-outlined text-base">shield_person</span>
-                    Vào trang duyệt yêu cầu
-                    {% if pending_refunds > 0 %}
-                    <span class="bg-[#1a1a1a]/20 text-[#1a1a1a] text-[10px] font-bold px-2 py-0.5 rounded-full">{{ pending_refunds }}</span>
-                    {% endif %}
-                </a>
-            </div>
-
         </div>
     </div>
 

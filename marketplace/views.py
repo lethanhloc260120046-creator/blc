@@ -1,33 +1,163 @@
+import re
+import unicodedata
+from difflib import SequenceMatcher
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.db.models import Q
 from .models import Product, Category, Cart, CartItem
 from users.models import UserProfile
 
 
+def normalize_search_text(value):
+    if not value:
+        return ''
+
+    value = unicodedata.normalize('NFKD', value)
+    value = ''.join(ch for ch in value if not unicodedata.combining(ch))
+    value = value.lower()
+    value = re.sub(r'[^a-z0-9\s]+', ' ', value)
+    return re.sub(r'\s+', ' ', value).strip()
+
+
+def tokenize_search_text(value):
+    return [token for token in normalize_search_text(value).split(' ') if token]
+
+
+def score_product_search(product, query):
+    query_norm = normalize_search_text(query)
+    if not query_norm:
+        return 0
+
+    tokens = tokenize_search_text(query)
+    name = normalize_search_text(product.name)
+    category = normalize_search_text(product.category.name if product.category else '')
+    description = normalize_search_text(product.description or '')
+    haystacks = [name, category, description]
+
+    score = 0
+
+    if query_norm == name:
+        score += 180
+    if query_norm in name:
+        score += 120
+    if query_norm in category:
+        score += 80
+    if query_norm in description:
+        score += 45
+
+    for token in tokens:
+        if token in name:
+            score += 32
+        if token in category:
+            score += 20
+        if token in description:
+            score += 10
+
+    name_words = name.split()
+    category_words = category.split()
+    candidate_words = name_words + category_words
+
+    for token in tokens:
+        if not candidate_words:
+            continue
+        best_word_ratio = max(SequenceMatcher(None, token, word).ratio() for word in candidate_words)
+        if best_word_ratio >= 0.88:
+            score += 38
+        elif best_word_ratio >= 0.75:
+            score += 24
+        elif best_word_ratio >= 0.62:
+            score += 12
+
+    for haystack in haystacks:
+        if not haystack:
+            continue
+        ratio = SequenceMatcher(None, query_norm, haystack).ratio()
+        if ratio >= 0.9:
+            score += 36
+        elif ratio >= 0.75:
+            score += 24
+        elif ratio >= 0.6:
+            score += 12
+
+    return score
+
+
+def rank_products_for_search(products, query):
+    ranked = []
+
+    for product in products:
+        score = score_product_search(product, query)
+        if score > 0:
+            ranked.append((score, product))
+
+    ranked.sort(key=lambda item: (-item[0], -item[1].created_at.timestamp(), item[1].id))
+    return [product for _, product in ranked]
+
+
 def product_list(request):
     """Display all AVAILABLE products with optional category filtering and search."""
-    products = Product.objects.filter(status='AVAILABLE')
+    products = Product.objects.filter(status='AVAILABLE').select_related('category', 'seller')
     categories = Category.objects.all()
 
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
 
+    condition = request.GET.get('condition')
+    if condition == 'new':
+        products = products.filter(condition__iregex=r'(new|open box)')
+    elif condition == 'used':
+        products = products.filter(condition__iregex=r'(used|like new)')
+    elif condition == 'refurbished':
+        products = products.filter(condition__iregex=r'(refurbished|repair)')
+
     query = request.GET.get('q')
     if query:
-        products = products.filter(
+        db_matches = list(products.filter(
             Q(name__icontains=query) | Q(description__icontains=query)
-        )
+        ))
+
+        if db_matches:
+            products = rank_products_for_search(db_matches, query)
+        else:
+            products = rank_products_for_search(list(products), query)
 
     context = {
         'products': products,
         'categories': categories,
     }
     return render(request, 'marketplace/product_list.html', context)
+
+
+def search_suggestions(request):
+    query = request.GET.get('q', '').strip()
+
+    if len(query) < 2:
+        return JsonResponse({'success': True, 'suggestions': []})
+
+    products = Product.objects.filter(status='AVAILABLE').select_related('category')[:120]
+    ranked = rank_products_for_search(list(products), query)[:6]
+
+    suggestions = []
+    for product in ranked:
+        suggestions.append({
+            'id': product.id,
+            'name': product.name,
+            'price': str(product.price),
+            'condition': product.condition,
+            'category': product.category.name if product.category else '',
+            'url': f'/marketplace/product/{product.id}/',
+            'image_url': product.get_image_url(),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'suggestions': suggestions,
+    })
 
 
 def product_detail(request, product_id):

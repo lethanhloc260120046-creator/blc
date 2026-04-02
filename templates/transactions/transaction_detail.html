@@ -82,7 +82,7 @@
                 <div class="flex items-center gap-4">
                     <div class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0">
                         {% if tx.product.get_image_url %}
-                        <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                        <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="product-media-fit"/>
                         {% else %}
                         <div class="w-full h-full flex items-center justify-center">
                             <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>

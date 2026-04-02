@@ -176,3 +176,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # url đại diện cho login django
 
 LOGIN_URL = '/users/login/'
+
+# Blockchain RPC used by backend APIs to read on-chain data in production.
+ETH_RPC_URL = os.getenv('ETH_RPC_URL', '').strip()

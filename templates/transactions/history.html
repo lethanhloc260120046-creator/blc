@@ -77,6 +77,21 @@
         background: rgba(69, 70, 77, 0.4);
     }
 
+    .stepper-scroll {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .stepper-scroll::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .stepper-scroll::-webkit-scrollbar-thumb {
+        background: rgba(78, 222, 163, 0.18);
+        border-radius: 999px;
+    }
+
     /* ── Action Buttons ── */
     .btn-confirm {
         background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
@@ -210,7 +225,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
     <!-- ═══════════════════════ Page Header ═══════════════════════ -->
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
                 <span class="material-symbols-outlined text-[#003824] text-2xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
@@ -280,7 +295,7 @@
     </div>
 
     <!-- ═══════════════════════ Section Tabs ═══════════════════════ -->
-    <div class="flex items-center gap-8 border-b border-outline-variant/15 mb-8">
+    <div class="flex flex-wrap items-center gap-4 sm:gap-8 border-b border-outline-variant/15 mb-8">
         <button onclick="switchTab('buyer')" id="tab-buyer" class="section-tab active pb-3 text-sm font-headline font-bold tracking-tight flex items-center gap-2">
             <span class="material-symbols-outlined text-base">shopping_bag</span>
             As Buyer
@@ -308,7 +323,7 @@
                 <!-- Product Image (clickable) -->
                 <a href="{% url 'transactions:transaction_detail' tx.id %}" class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0 block hover:ring-2 hover:ring-primary/40 transition-all">
                     {% if tx.product.get_image_url %}
-                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="product-media-fit"/>
                     {% else %}
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
@@ -339,7 +354,7 @@
                         <span class="badge-cancelled text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Cancelled</span>
                         {% endif %}
                     </div>
-                    <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
+                    <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-on-surface-variant font-body">
                         <a href="{% url 'transactions:transaction_detail' tx.id %}" class="flex items-center gap-1 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[13px]">tag</span>
                             Order #{{ tx.id }}
@@ -360,7 +375,8 @@
                 </div>
 
                 <!-- Escrow Stepper -->
-                <div class="flex items-start gap-0 flex-shrink-0">
+                <div class="stepper-scroll flex-shrink-0 lg:w-auto">
+                <div class="flex items-start gap-0 min-w-max">
                     <div class="stepper-step">
                         <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
                             {% if tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}
@@ -392,16 +408,17 @@
                         <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Cancelled' %}Cancelled{% else %}Completed{% endif %}</span>
                     </div>
                 </div>
+                </div>
 
                 <!-- Action Buttons -->
-                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                <div class="flex flex-col items-stretch sm:items-end gap-2 flex-shrink-0 w-full lg:w-auto">
                     <!-- Prominent "Xem chi tiết" button -->
                     <a href="{% url 'transactions:transaction_detail' tx.id %}" class="btn-detail px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright border border-outline-variant/20 hover:border-primary/30 text-[#dae2fd] font-headline font-bold text-xs flex items-center gap-2 transition-all">
                         <span class="material-symbols-outlined text-sm">visibility</span>
                         Xem chi tiết
                     </a>
                     <!-- Escrow action buttons -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
                     {% if tx.is_locked %}
                     <span class="text-xs text-error font-body flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">lock</span>
@@ -471,7 +488,7 @@
                 <!-- Product Image (clickable) -->
                 <a href="{% url 'transactions:transaction_detail' tx.id %}" class="w-20 h-20 rounded-xl overflow-hidden bg-surface-container-lowest flex-shrink-0 block hover:ring-2 hover:ring-primary/40 transition-all">
                     {% if tx.product.get_image_url %}
-                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="w-full h-full object-cover"/>
+                    <img src="{{ tx.product.get_image_url }}" alt="{{ tx.product.name }}" class="product-media-fit"/>
                     {% else %}
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-outline/30 text-2xl">image</span>
@@ -502,7 +519,7 @@
                         <span class="badge-cancelled text-[10px] font-bold font-headline tracking-wide px-2.5 py-0.5 rounded-full">Cancelled</span>
                         {% endif %}
                     </div>
-                    <div class="flex items-center gap-4 text-xs text-on-surface-variant font-body">
+                    <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-on-surface-variant font-body">
                         <a href="{% url 'transactions:transaction_detail' tx.id %}" class="flex items-center gap-1 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-[13px]">tag</span>
                             Order #{{ tx.id }}
@@ -523,7 +540,8 @@
                 </div>
 
                 <!-- Escrow Stepper -->
-                <div class="flex items-start gap-0 flex-shrink-0">
+                <div class="stepper-scroll flex-shrink-0 lg:w-auto">
+                <div class="flex items-start gap-0 min-w-max">
                     <!-- Created -->
                     <div class="stepper-step">
                         <div class="stepper-dot {% if tx.status == 'Created' %}active{% elif tx.status == 'Funded' or tx.status == 'Disputed' or tx.status == 'Completed' or tx.status == 'Cancelled' %}completed{% else %}pending{% endif %}">
@@ -564,16 +582,17 @@
                         <span class="text-[9px] font-label text-on-surface-variant">{% if tx.status == 'Cancelled' %}Cancelled{% else %}Completed{% endif %}</span>
                     </div>
                 </div>
+                </div>
 
                 <!-- Action Buttons / Status -->
-                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                <div class="flex flex-col items-stretch sm:items-end gap-2 flex-shrink-0 w-full lg:w-auto">
                     <!-- Prominent "Xem chi tiết" button -->
                     <a href="{% url 'transactions:transaction_detail' tx.id %}" class="btn-detail px-4 py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright border border-outline-variant/20 hover:border-primary/30 text-[#dae2fd] font-headline font-bold text-xs flex items-center gap-2 transition-all">
                         <span class="material-symbols-outlined text-sm">visibility</span>
                         Xem chi tiết
                     </a>
                     <!-- Status info -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
                     {% if tx.is_locked %}
                     <span class="text-xs text-error font-body flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">lock</span>

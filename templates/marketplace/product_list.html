@@ -144,7 +144,7 @@
             <div class="group bg-surface-container-low rounded-[1.5rem] overflow-hidden transition-all duration-300 hover:bg-surface-container hover:shadow-2xl hover:shadow-black/40">
                 <div class="relative aspect-[4/3] overflow-hidden">
                     {% if product.get_image_url %}
-                    <img alt="{{ product.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="{{ product.get_image_url }}"/>
+                    <img alt="{{ product.name }}" class="product-media-fit group-hover:scale-105 transition-transform duration-700" src="{{ product.get_image_url }}"/>
                     {% else %}
                     <div class="w-full h-full bg-surface-container-highest flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                         <span class="material-symbols-outlined text-6xl text-outline/30">inventory_2</span>

@@ -56,7 +56,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
     <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #ffd54f 0%, #ff8f00 100%);">
                 <span class="material-symbols-outlined text-2xl" style="color: #1a1a1a; font-variation-settings: 'FILL' 1;">group</span>
@@ -66,7 +66,7 @@
                 <p class="text-sm text-on-surface-variant font-body">Xem thông tin và quản lý trạng thái tài khoản</p>
             </div>
         </div>
-        <a href="{% url 'transactions:admin_dashboard' %}" class="flex items-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
+        <a href="{% url 'transactions:admin_dashboard' %}" class="inline-flex items-center justify-center gap-2 bg-surface-container-highest hover:bg-surface-bright text-on-surface font-headline font-bold py-2.5 px-5 rounded-xl transition-all text-sm">
             <span class="material-symbols-outlined text-base">arrow_back</span>
             Dashboard
         </a>
@@ -92,7 +92,7 @@
     {% if user_data %}
     <div class="space-y-4">
         {% for item in user_data %}
-        <div class="user-row p-5 flex items-center gap-5">
+        <div class="user-row p-5 flex flex-col sm:flex-row sm:items-center gap-5">
             <!-- Avatar -->
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                  style="background: {% if item.profile.user.is_staff %}rgba(255, 213, 79, 0.12){% elif item.profile.is_locked %}rgba(255, 180, 171, 0.08){% else %}rgba(78, 222, 163, 0.08){% endif %};">
@@ -101,8 +101,8 @@
             </div>
 
             <!-- User Info -->
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
+            <div class="flex-1 min-w-0 w-full">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
                     <span class="text-xs font-mono text-[#dae2fd]/80 truncate">{{ item.profile.wallet_address }}</span>
                     {% if item.profile.user.is_staff %}
                     <span class="badge-admin text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">Admin</span>
@@ -119,7 +119,7 @@
             </div>
 
             <!-- Stats -->
-            <div class="hidden sm:flex items-center gap-3 flex-shrink-0">
+            <div class="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto">
                 <div class="stat-chip text-center">
                     <div class="text-sm font-headline font-bold text-[#dae2fd]">{{ item.product_count }}</div>
                     <div class="text-[9px] text-outline font-label">SP</div>
@@ -131,7 +131,7 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
                 {% if not item.profile.user.is_staff %}
                 <form method="POST" action="{% url 'users:admin_toggle_lock' item.profile.user.id %}" class="inline">
                     {% csrf_token %}

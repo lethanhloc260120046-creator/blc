@@ -24,6 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 var ETH_VND_RATE = null;
+var MOBILE_CHECKOUT_STATE = null;
 
 function formatVND(amount) {
     if (amount == null || isNaN(amount)) return '';
@@ -50,6 +51,60 @@ function convertAllVndToEth() {
     });
 }
 
+function formatWalletBalance(ethAmount) {
+    if (ethAmount == null || isNaN(ethAmount)) return '';
+
+    var vndText = '';
+    if (ETH_VND_RATE) {
+        var vndAmount = ethAmount * ETH_VND_RATE;
+        vndText = ' / ' + formatVND(vndAmount);
+    }
+
+    return ethAmount.toFixed(4) + ' ETH' + vndText;
+}
+
+function isMetaMaskMobileBrowser() {
+    var ua = (navigator.userAgent || '').toLowerCase();
+    return ua.indexOf('metamaskmobile') !== -1;
+}
+
+function getAmountInWeiFromVnd(priceInVnd) {
+    var ethAmount = parseFloat(priceInVnd) / ETH_VND_RATE;
+    var ethString = ethAmount.toFixed(8);
+    return ethers.parseEther(ethString);
+}
+
+async function refreshNavWalletBalance() {
+    var balanceWrap = document.getElementById('nav-balance-display');
+    var balanceEl = document.getElementById('nav-wallet-balance');
+
+    if (!balanceWrap || !balanceEl) return;
+
+    var walletAddress = balanceWrap.getAttribute('data-wallet-address');
+    if (!walletAddress) return;
+
+    balanceEl.classList.remove('hidden');
+
+    try {
+        var response = await fetch('/users/api/wallet_balance/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        var data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Balance unavailable');
+        }
+
+        var ethBalance = parseFloat(data.eth_balance);
+        balanceEl.textContent = formatWalletBalance(ethBalance);
+    } catch (error) {
+        console.warn('Could not load wallet balance:', error);
+        balanceEl.textContent = 'Balance unavailable';
+    }
+}
+
 (function fetchEthVndRate() {
     formatAllVndPrices();
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=vnd')
@@ -58,12 +113,15 @@ function convertAllVndToEth() {
             if (data && data.ethereum && data.ethereum.vnd) {
                 ETH_VND_RATE = data.ethereum.vnd;
                 convertAllVndToEth();
+                refreshNavWalletBalance();
             }
         })
         .catch(function(err) {
             console.warn('Could not fetch ETH/VND rate:', err);
         });
 })();
+
+refreshNavWalletBalance();
 
 /**
  * Truncate an Ethereum address for display.
@@ -88,6 +146,8 @@ function truncateAddress(address) {
 async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingData) {
     const checkoutBtn = document.getElementById('checkout-btn');
     const originalBtnText = checkoutBtn ? checkoutBtn.textContent : '';
+    let transactionId = null;
+    let escrowCreatedOnChain = false;
 
     try {
         if (checkoutBtn) {
@@ -110,6 +170,11 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingDat
             }
         }
 
+        if (isMetaMaskMobileBrowser()) {
+            await handleMobileCheckoutFlow(productId, sellerWallet, priceInVnd, shippingData, checkoutBtn, originalBtnText);
+            return;
+        }
+
         // ── Step 1: Create DB transaction ───────────────────────────────
         if (checkoutBtn) checkoutBtn.textContent = 'Creating order…';
 
@@ -128,7 +193,7 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingDat
             throw new Error(checkoutData.error || 'Failed to create transaction in the database.');
         }
 
-        const transactionId = checkoutData.transaction_id;
+        transactionId = checkoutData.transaction_id;
 
         // ── Step 2: Initialize contract ─────────────────────────────────
         if (checkoutBtn) checkoutBtn.textContent = 'Connecting to wallet…';
@@ -144,6 +209,8 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingDat
         if (checkoutBtn) checkoutBtn.textContent = 'Creating escrow on-chain…';
 
         const createReceipt = await createEscrowTx(transactionId, sellerWallet, amountInWei);
+        escrowCreatedOnChain = true;
+        await updateTransactionStatus(transactionId, 'Created', createReceipt.hash);
 
         // ── Step 5: Fund the escrow ─────────────────────────────────────
         if (checkoutBtn) checkoutBtn.textContent = 'Funding escrow…';
@@ -162,6 +229,14 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingDat
     } catch (error) {
         console.error('initiateCheckout error:', error);
 
+        if (transactionId && !escrowCreatedOnChain) {
+            try {
+                await abandonCheckoutRecord(transactionId);
+            } catch (cleanupError) {
+                console.error('abandonCheckoutRecord error:', cleanupError);
+            }
+        }
+
         if (checkoutBtn) {
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = originalBtnText || 'Checkout';
@@ -171,6 +246,137 @@ async function initiateCheckout(productId, sellerWallet, priceInVnd, shippingDat
             // Avoid duplicate alerts — lower-level functions already alert
         }
     }
+}
+
+async function createCheckoutRecord(productId, shippingData) {
+    const checkoutResponse = await fetch(`/transactions/checkout/${productId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify(shippingData || {}),
+    });
+
+    const checkoutData = await checkoutResponse.json();
+
+    if (!checkoutResponse.ok || !checkoutData.success) {
+        throw new Error(checkoutData.error || 'Failed to create transaction in the database.');
+    }
+
+    return checkoutData.transaction_id;
+}
+
+async function handleMobileCheckoutFlow(productId, sellerWallet, priceInVnd, shippingData, checkoutBtn, originalBtnText) {
+    try {
+        if (!MOBILE_CHECKOUT_STATE) {
+            if (checkoutBtn) checkoutBtn.textContent = 'Creating order…';
+
+            var mobileTransactionId = await createCheckoutRecord(productId, shippingData);
+
+            MOBILE_CHECKOUT_STATE = {
+                productId: productId,
+                sellerWallet: sellerWallet,
+                priceInVnd: priceInVnd,
+                shippingData: shippingData,
+                transactionId: mobileTransactionId,
+                step: 'create',
+            };
+
+            if (checkoutBtn) {
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Bấm lại để tạo giao dịch trên MetaMask';
+            }
+
+            alert('Đơn hàng đã được chuẩn bị. Trên MetaMask mobile, vui lòng bấm nút thêm 1 lần để xác nhận tạo giao dịch.');
+            return;
+        }
+
+        if (MOBILE_CHECKOUT_STATE.step === 'create') {
+            if (checkoutBtn) checkoutBtn.textContent = 'Opening MetaMask…';
+
+            await initContract();
+
+            var createAmountInWei = getAmountInWeiFromVnd(MOBILE_CHECKOUT_STATE.priceInVnd);
+            var createReceipt = await createEscrowTx(
+                MOBILE_CHECKOUT_STATE.transactionId,
+                MOBILE_CHECKOUT_STATE.sellerWallet,
+                createAmountInWei
+            );
+
+            await updateTransactionStatus(MOBILE_CHECKOUT_STATE.transactionId, 'Created', createReceipt.hash);
+            MOBILE_CHECKOUT_STATE.step = 'pay';
+
+            if (checkoutBtn) {
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Bấm lại để nạp tiền vào escrow';
+            }
+
+            alert('Đã tạo giao dịch trên blockchain. Vui lòng bấm thêm 1 lần nữa để nạp tiền vào escrow.');
+            return;
+        }
+
+        if (MOBILE_CHECKOUT_STATE.step === 'pay') {
+            if (checkoutBtn) checkoutBtn.textContent = 'Funding escrow…';
+
+            await initContract();
+
+            var payAmountInWei = getAmountInWeiFromVnd(MOBILE_CHECKOUT_STATE.priceInVnd);
+            var payReceipt = await payEscrowTx(MOBILE_CHECKOUT_STATE.transactionId, payAmountInWei);
+
+            await updateTransactionStatus(MOBILE_CHECKOUT_STATE.transactionId, 'Funded', payReceipt.hash);
+            MOBILE_CHECKOUT_STATE = null;
+
+            alert('Checkout successful! Your escrow has been funded.');
+            window.location.href = '/transactions/history/';
+        }
+    } catch (error) {
+        console.error('handleMobileCheckoutFlow error:', error);
+
+        if (MOBILE_CHECKOUT_STATE && MOBILE_CHECKOUT_STATE.step === 'create' &&
+            error.code !== 'ACTION_REJECTED' && error.code !== 4001) {
+            // Keep state so the user can retry create on-chain without recreating the DB order.
+        }
+
+        if (MOBILE_CHECKOUT_STATE && MOBILE_CHECKOUT_STATE.step === 'create' &&
+            (error.code === 'ACTION_REJECTED' || error.code === 4001)) {
+            try {
+                await abandonCheckoutRecord(MOBILE_CHECKOUT_STATE.transactionId);
+            } catch (cleanupError) {
+                console.error('abandonCheckoutRecord error:', cleanupError);
+            }
+            MOBILE_CHECKOUT_STATE = null;
+        }
+
+        if (checkoutBtn) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = MOBILE_CHECKOUT_STATE
+                ? (MOBILE_CHECKOUT_STATE.step === 'create'
+                    ? 'Bấm lại để tạo giao dịch trên MetaMask'
+                    : 'Bấm lại để nạp tiền vào escrow')
+                : (originalBtnText || 'Checkout');
+        }
+    }
+}
+
+async function abandonCheckoutRecord(transactionId) {
+    const response = await fetch('/transactions/api/abandon_checkout/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({
+            transaction_id: transactionId,
+        }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to abandon checkout.');
+    }
+
+    return data;
 }
 
 /**

@@ -61,7 +61,7 @@
             <!-- Image -->
             <div class="aspect-[4/3] bg-surface-container-lowest relative">
                 {% if product.get_image_url %}
-                <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover" />
+                <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-media-fit" />
                 {% else %}
                 <div class="w-full h-full flex items-center justify-center">
                     <span class="material-symbols-outlined text-4xl text-outline/30">image</span>

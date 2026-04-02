@@ -83,6 +83,45 @@
         .bg-gradient-primary {
             background: linear-gradient(135deg, #4edea3 0%, #009365 100%);
         }
+        .search-suggestion-panel {
+            position: absolute;
+            top: calc(100% + 0.6rem);
+            left: 0;
+            right: 0;
+            background: rgba(19, 27, 46, 0.96);
+            border: 1px solid rgba(78, 222, 163, 0.14);
+            border-radius: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.32);
+            overflow: hidden;
+            z-index: 70;
+        }
+        .search-suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.85rem 0.95rem;
+            text-decoration: none;
+            transition: background 0.18s;
+        }
+        .search-suggestion-item:hover,
+        .search-suggestion-item.is-active {
+            background: rgba(78, 222, 163, 0.08);
+        }
+        .search-thumb {
+            width: 2.8rem;
+            height: 2.8rem;
+            border-radius: 0.85rem;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #131b2e;
+        }
+        .product-media-fit {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            background: rgba(6, 14, 32, 0.72);
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -92,11 +131,12 @@
 <nav class="bg-[#0b1326] flex flex-wrap justify-between items-center w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 max-w-full mx-auto fixed top-0 z-50 gap-4">
     <div class="flex items-center gap-4 sm:gap-8">
         <a href="{% url 'marketplace:product_list' %}" class="text-lg sm:text-xl font-black text-[#dae2fd] tracking-tighter font-headline">TechEscrow P2P</a>
-        <div class="hidden lg:flex items-center bg-surface-container-lowest rounded-xl px-4 py-2 w-96 group focus-within:ring-1 ring-primary/30 transition-all">
+        <div id="global-search-shell" class="hidden lg:flex relative items-center bg-surface-container-lowest rounded-xl px-4 py-2 w-96 group focus-within:ring-1 ring-primary/30 transition-all">
             <span class="material-symbols-outlined text-outline text-sm mr-2">search</span>
             <form method="get" action="{% url 'marketplace:product_list' %}" class="w-full">
-                <input name="q" class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full font-body placeholder:text-outline/50" placeholder="Search premium hardware..." type="text" value="{{ request.GET.q|default:'' }}"/>
+                <input id="global-search-input" autocomplete="off" name="q" class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full font-body placeholder:text-outline/50" placeholder="Search premium hardware..." type="text" value="{{ request.GET.q|default:'' }}"/>
             </form>
+            <div id="global-search-suggestions" class="search-suggestion-panel hidden"></div>
         </div>
     </div>
     <div class="flex items-center gap-4 sm:gap-8">
@@ -121,7 +161,12 @@
             </a>
             <a href="{% url 'users:profile' %}" class="bg-surface-container-highest px-4 py-2 rounded-xl text-on-surface flex items-center gap-2 hover:bg-surface-bright transition-all">
                 <span class="material-symbols-outlined text-primary text-sm">account_circle</span>
-                <span class="font-bold tracking-tight font-headline text-sm" id="nav-wallet-display">Profile</span>
+                <span class="flex flex-col leading-tight"
+                      id="nav-balance-display"
+                      data-wallet-address="{{ user.userprofile.wallet_address|default:'' }}">
+                    <span class="font-bold tracking-tight font-headline text-sm" id="nav-wallet-display">Profile</span>
+                    <span class="text-[10px] text-on-surface-variant font-body hidden" id="nav-wallet-balance">Loading balance…</span>
+                </span>
             </a>
             <a href="{% url 'users:logout' %}" class="text-on-surface-variant hover:text-error transition-colors p-2">
                 <span class="material-symbols-outlined text-sm">logout</span>
@@ -134,15 +179,38 @@
         </button>
         {% endif %}
     </div>
+
+    <div class="w-full lg:hidden space-y-3 pb-1">
+        <form method="get" action="{% url 'marketplace:product_list' %}" class="relative">
+            <span class="material-symbols-outlined text-outline text-sm absolute left-3 top-1/2 -translate-y-1/2">search</span>
+            <input name="q"
+                   class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl pl-10 pr-4 py-3 text-sm text-on-surface placeholder:text-outline/50 focus:ring-1 focus:ring-primary/30 focus:border-primary/20"
+                   placeholder="Tìm sản phẩm..."
+                   type="text"
+                   value="{{ request.GET.q|default:'' }}"/>
+        </form>
+
+        <div class="flex flex-wrap gap-2 text-xs font-headline font-bold">
+            <a class="px-3 py-2 rounded-xl bg-surface-container-highest text-on-surface" href="{% url 'marketplace:product_list' %}">Home</a>
+            {% if user.is_authenticated %}
+            <a class="px-3 py-2 rounded-xl bg-surface-container-highest text-on-surface" href="{% url 'transactions:history' %}">My Orders</a>
+            <a class="px-3 py-2 rounded-xl bg-surface-container-highest text-on-surface" href="{% url 'marketplace:sell_item' %}">Sell Item</a>
+            <a class="px-3 py-2 rounded-xl bg-surface-container-highest text-on-surface" href="{% url 'marketplace:my_products' %}">My Products</a>
+            {% if user.is_staff %}
+            <a class="px-3 py-2 rounded-xl bg-[#ffd54f]/10 text-[#ffd54f] border border-[#ffd54f]/20" href="{% url 'transactions:admin_dashboard' %}">Admin</a>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
 </nav>
 
 <!-- Main Content -->
-<div class="flex-grow pt-20 sm:pt-24">
+<div class="flex-grow pt-44 md:pt-24">
     {% block content %}{% endblock %}
 </div>
 
 <!-- Footer -->
-<footer class="w-full py-12 px-8 mt-auto bg-[#060e20]">
+<footer class="w-full py-12 px-4 sm:px-8 mt-auto bg-[#060e20]">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-7xl mx-auto">
         <div class="space-y-4">
             <div class="font-headline font-bold text-[#4edea3] text-lg">TechEscrow P2P</div>
@@ -161,7 +229,7 @@
             </div>
         </div>
         <div class="flex flex-col md:items-end justify-between">
-            <div class="font-body text-xs text-[#dae2fd]/50 text-right opacity-80">
+            <div class="font-body text-xs text-[#dae2fd]/50 md:text-right opacity-80">
                 © 2024 TechEscrow P2P. Secured by Kinetic Ledger.
             </div>
             <div class="flex gap-4 mt-4">
@@ -180,6 +248,7 @@
 <script src="{% static 'js/auth.js' %}"></script>
 <script src="{% static 'js/web3_integration.js' %}"></script>
 <script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/search.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

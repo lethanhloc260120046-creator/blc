@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db import transaction as db_transaction
 from django.db.models import Sum
 from .models import Transaction, RefundRequest
 from marketplace.models import Product
@@ -14,6 +15,26 @@ from django.contrib.auth.models import User
 
 CONTRACT_ADDRESS = '0x35F481cE890d00b58AF788494beE2b81D7eE6E54'
 ETHERSCAN_BASE_URL = 'https://sepolia.etherscan.io'
+
+
+def sync_product_status(transaction_obj):
+    """
+    Keep product availability aligned with the order lifecycle.
+    """
+    product = transaction_obj.product
+
+    if transaction_obj.status in ('Created', 'Funded', 'Disputed'):
+        new_status = 'SOLD'
+    elif transaction_obj.status == 'Completed':
+        new_status = 'SOLD'
+    elif transaction_obj.status == 'Cancelled':
+        new_status = 'AVAILABLE'
+    else:
+        return
+
+    if product.status != new_status:
+        product.status = new_status
+        product.save(update_fields=['status', 'updated_at'])
 
 
 @login_required
@@ -49,22 +70,30 @@ def checkout(request, product_id):
         except json.JSONDecodeError:
             data = {}
 
-        transaction = Transaction.objects.create(
-            buyer=request.user,
-            seller=product.seller,
-            product=product,
-            amount=product.price,
-            status='Created',
-            receiver_name=data.get('receiver_name', ''),
-            receiver_phone=data.get('receiver_phone', ''),
-            shipping_city=data.get('shipping_city', ''),
-            shipping_district=data.get('shipping_district', ''),
-            shipping_ward=data.get('shipping_ward', ''),
-            shipping_address=data.get('shipping_address', ''),
-        )
+        with db_transaction.atomic():
+            product = Product.objects.select_for_update().get(pk=product.pk)
 
-        product.status = 'SOLD'
-        product.save()
+            if product.status != 'AVAILABLE':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Sản phẩm này hiện không còn khả dụng để thanh toán.',
+                }, status=409)
+
+            transaction = Transaction.objects.create(
+                buyer=request.user,
+                seller=product.seller,
+                product=product,
+                amount=product.price,
+                status='Created',
+                receiver_name=data.get('receiver_name', ''),
+                receiver_phone=data.get('receiver_phone', ''),
+                shipping_city=data.get('shipping_city', ''),
+                shipping_district=data.get('shipping_district', ''),
+                shipping_ward=data.get('shipping_ward', ''),
+                shipping_address=data.get('shipping_address', ''),
+            )
+
+            sync_product_status(transaction)
 
         return JsonResponse({
             'success': True,
@@ -131,12 +160,60 @@ def update_transaction_status(request):
     if tx_hash:
         transaction.smart_contract_tx_hash = tx_hash
     transaction.save()
+    sync_product_status(transaction)
 
     return JsonResponse({
         'success': True,
         'transaction_id': transaction.id,
         'status': transaction.status,
     })
+
+
+@login_required
+@require_POST
+def abandon_checkout(request):
+    """
+    Delete a DB order that never made it on-chain and release the product.
+    Used when the buyer cancels MetaMask before createTransaction succeeds.
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON.'}, status=400)
+
+    transaction_id = data.get('transaction_id')
+    if not transaction_id:
+        return JsonResponse({'success': False, 'error': 'Missing transaction_id.'}, status=400)
+
+    try:
+        with db_transaction.atomic():
+            tx = Transaction.objects.select_for_update().select_related('product').get(
+                pk=transaction_id,
+                buyer=request.user,
+            )
+
+            if tx.status != 'Created':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Chỉ có thể hủy checkout đang ở trạng thái Created.',
+                }, status=400)
+
+            if tx.smart_contract_tx_hash:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Checkout này đã được tạo trên blockchain, không thể tự xóa.',
+                }, status=400)
+
+            product = tx.product
+            tx.delete()
+
+            if product.status == 'SOLD':
+                product.status = 'AVAILABLE'
+                product.save(update_fields=['status', 'updated_at'])
+    except Transaction.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Transaction not found.'}, status=404)
+
+    return JsonResponse({'success': True})
 
 
 @csrf_exempt
@@ -485,6 +562,7 @@ def admin_resolve_refund(request):
 
         refund.save()
         refund.transaction.save()
+        sync_product_status(refund.transaction)
 
         return JsonResponse({
             'success': True,
